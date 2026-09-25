@@ -283,6 +283,17 @@ th{
     }
 }
 </style>
+
+<style>
+#expiringSoonCard{
+    transition:transform .15s ease, box-shadow .15s ease;
+}
+#expiringSoonCard:hover{
+    transform:translateY(-2px);
+    box-shadow:0 5px 18px rgba(0,0,0,.12);
+}
+</style>
+
 </head>
 
 <body>
@@ -399,9 +410,10 @@ th{
             <strong id="dueToday">0</strong>
         </div>
 
-        <div class="stat">
-            <h3>Next 7 Days</h3>
+        <div class="stat" id="expiringSoonCard" onclick="showExpiringSoon()" style="cursor:pointer;">
+            <h3>Expiring Soon (7 Days)</h3>
             <strong id="next7Days">0</strong>
+            <div class="small">Click to view</div>
         </div>
 
         <div class="stat">
@@ -488,6 +500,10 @@ th{
             placeholder="Search Name / Mobile / Vehicle Number"
             oninput="resetCustomerPage()"
         >
+
+        <button class="btn-gray" onclick="showAllCustomers()">
+            Show All Customers
+        </button>
 
         <div class="table-wrap">
 
@@ -611,6 +627,7 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let customers = [];
 let reminders = [];
 let currentEditId = null;
+let customerFilter = "all";
 let customerPage = 1;
 const CUSTOMER_PAGE_SIZE = 100;
 
@@ -937,13 +954,46 @@ function resetCustomerPage() {
     renderCustomers();
 }
 
+function showExpiringSoon() {
+    customerFilter = "expiring";
+    customerPage = 1;
+
+    const title = document.querySelector("#customerTable")?.closest(".card")?.querySelector("h2");
+    if (title) title.innerText = "Expiring Soon (Next 7 Days)";
+
+    renderCustomers();
+
+    const card = document.getElementById("customerTable")?.closest(".card");
+    if (card) card.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+function showAllCustomers() {
+    customerFilter = "all";
+    customerPage = 1;
+
+    const title = document.querySelector("#customerTable")?.closest(".card")?.querySelector("h2");
+    if (title) title.innerText = "Customers";
+
+    renderCustomers();
+}
+
 function renderCustomers() {
     const tbody = document.getElementById("customerTable");
     if (!tbody) return;
 
     const q = (document.getElementById("searchBox")?.value || "").toLowerCase().trim();
+    const today = startOfDay(new Date());
 
     const list = customers.filter(c => {
+        const d = parseLocalDate(c.expiry_date);
+
+        // Expiring Soon = today through next 7 days.
+        if (customerFilter === "expiring") {
+            if (!d || isNaN(d)) return false;
+            const diff = Math.round((startOfDay(d) - today) / 86400000);
+            if (diff < 0 || diff > 7) return false;
+        }
+
         if (!q) return true;
         return [
             c.name,
