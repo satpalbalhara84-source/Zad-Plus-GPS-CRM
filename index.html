@@ -1,22 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zad Plus GPS CRM</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-
 <style>
-
 *{
     box-sizing:border-box;
 }
@@ -149,7 +141,7 @@ button{
 .form-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
-    gap:15px;
+    gap:10px 20px;
 }
 
 .table-wrap{
@@ -159,18 +151,17 @@ button{
 table{
     width:100%;
     border-collapse:collapse;
-    min-width:900px;
+    min-width:850px;
 }
 
-th,
-td{
+th,td{
     padding:12px;
     border-bottom:1px solid #e5e7eb;
     text-align:left;
 }
 
 th{
-    background:#f9fafb;
+    background:#f3f4f6;
 }
 
 .badge{
@@ -183,7 +174,7 @@ th{
 
 .badge-today{
     background:#fee2e2;
-    color:#991b1b;
+    color:#b91c1c;
 }
 
 .badge-upcoming{
@@ -260,7 +251,6 @@ th{
 }
 
 @media(max-width:800px){
-
     .stats{
         grid-template-columns:repeat(2,1fr);
     }
@@ -268,11 +258,9 @@ th{
     .form-grid{
         grid-template-columns:1fr;
     }
-
 }
 
 @media(max-width:500px){
-
     .stats{
         grid-template-columns:1fr 1fr;
         gap:8px;
@@ -293,67 +281,38 @@ th{
     button{
         padding:9px 12px;
     }
-
 }
-
 </style>
-
 </head>
-
 
 <body>
 
-
-<!-- =========================
-     LOGIN
-========================= -->
-
+<!-- LOGIN -->
 <div id="loginScreen">
 
     <div class="login-box card">
 
         <h1>ZAD PLUS</h1>
-
         <h2>GPS Customer CRM</h2>
 
-        <div id="loginMessage"
-             class="message">
-        </div>
+        <div id="loginMessage" class="message"></div>
 
         <label>
             Email
-
-            <input
-                type="email"
-                id="loginEmail"
-                placeholder="Enter email">
+            <input type="email" id="loginEmail" placeholder="Enter email">
         </label>
 
         <label>
             Password
-
-            <input
-                type="password"
-                id="loginPassword"
-                placeholder="Enter password">
+            <input type="password" id="loginPassword" placeholder="Enter password">
         </label>
 
-        <button
-            type="button"
-            class="btn-primary"
-            onclick="login()">
-
+        <button class="btn-primary" onclick="login()">
             Login
-
         </button>
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showSignup()">
-
+        <button class="btn-gray" onclick="showSignup()">
             Create Account
-
         </button>
 
     </div>
@@ -361,55 +320,31 @@ th{
 </div>
 
 
-<!-- =========================
-     SIGNUP
-========================= -->
-
-<div id="signupScreen"
-     class="hidden">
+<!-- SIGNUP -->
+<div id="signupScreen" class="hidden">
 
     <div class="login-box card">
 
         <h1>Create Account</h1>
 
-        <div id="signupMessage"
-             class="message">
-        </div>
+        <div id="signupMessage" class="message"></div>
 
         <label>
             Email
-
-            <input
-                type="email"
-                id="signupEmail"
-                placeholder="Email">
+            <input type="email" id="signupEmail" placeholder="Email">
         </label>
 
         <label>
             Password
-
-            <input
-                type="password"
-                id="signupPassword"
-                placeholder="Minimum 6 characters">
+            <input type="password" id="signupPassword" placeholder="Minimum 6 characters">
         </label>
 
-        <button
-            type="button"
-            class="btn-success"
-            onclick="signup()">
-
+        <button class="btn-success" onclick="signup()">
             Create Account
-
         </button>
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showLogin()">
-
+        <button class="btn-gray" onclick="showLogin()">
             Back to Login
-
         </button>
 
     </div>
@@ -417,1036 +352,431 @@ th{
 </div>
 
 
-<!-- =========================
-     MAIN APP
-========================= -->
-
-<div id="app"
-     class="hidden">
-
+<!-- MAIN APP -->
+<div id="app" class="hidden">
 
 <header>
-
     <h1>ZAD PLUS GPS CRM</h1>
-
-    <p>
-        GPS Customer Reminder Management
-    </p>
-
+    <p>GPS Customer Reminder Management</p>
 </header>
-
 
 <div class="container">
 
-
-<!-- =========================
-     TOP BAR
-========================= -->
-
-<div class="card topbar">
-
-    <div>
-
-        <strong id="userEmail"></strong>
-
-    </div>
-
-    <div>
-
-        <button
-            type="button"
-            class="btn-primary"
-            onclick="showAddCustomer()">
-
-            + Add Customer
-
-        </button>
-
-        <button
-            type="button"
-            class="btn-dark"
-            onclick="logout()">
-
-            Logout
-
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- =========================
-     MESSAGE
-========================= -->
-
-<div id="mainMessage"
-     class="message">
-</div>
-
-
-<!-- =========================
-     DASHBOARD STATS
-========================= -->
-
-<div class="stats">
-
-
-    <div class="stat">
-
-        <h3>
-            Total Customers
-        </h3>
-
-        <strong id="totalCustomers">
-            0
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <h3>
-            Due Today
-        </h3>
-
-        <strong id="dueToday">
-            0
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <h3>
-            Next 7 Days
-        </h3>
-
-        <strong id="next7Days">
-            0
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <h3>
-            Expired
-        </h3>
-
-        <strong id="expiredCustomers">
-            0
-        </strong>
-
-    </div>
-
-
-</div>
-
-
-<!-- =========================
-     ADD CUSTOMER
-========================= -->
-
-<div id="customerFormCard"
-     class="card hidden">
-
-
-    <h2 id="formTitle">
-        Add Customer
-    </h2>
-
-
-    <div class="form-grid">
-
-
-        <label>
-
-            Name *
-
-            <input
-                type="text"
-                id="customerName"
-                placeholder="Customer Name">
-
-        </label>
-
-
-        <label>
-
-            Mobile *
-
-            <input
-                type="tel"
-                id="customerMobile"
-                placeholder="10 digit mobile number">
-
-        </label>
-
-
-        <label>
-
-            Vehicle Number
-
-            <input
-                type="text"
-                id="vehicleNumber"
-                placeholder="HR12AB1234">
-
-        </label>
-
-
-        <label>
-
-            GPS Expiry Date *
-
-            <input
-                type="date"
-                id="expiryDate">
-
-        </label>
-
-
-    </div>
-
-
-    <button
-        type="button"
-        class="btn-success"
-        onclick="saveCustomer()">
-
-        Save Customer
-
-    </button>
-
-
-    <button
-        type="button"
-        class="btn-gray"
-        onclick="hideCustomerForm()">
-
-        Cancel
-
-    </button>
-
-
-    <input
-        type="hidden"
-        id="editCustomerId">
-
-
-</div>
-
-
-<!-- =========================
-     CUSTOMER LIST
-========================= -->
-
-<div class="card">
-
-
-    <div class="topbar">
-
-
-        <h2>
-            Customers
-        </h2>
-
+    <!-- TOP BAR -->
+    <div class="card topbar">
 
         <div>
+            <strong id="userEmail"></strong>
+        </div>
 
-
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="downloadTemplate()">
-
-                Download Template
-
+        <div>
+            <button class="btn-primary" onclick="showAddCustomer()">
+                + Add Customer
             </button>
 
-
-            <button
-                type="button"
-                class="btn-success"
-                onclick="document.getElementById('csvFile').click()">
-
-                Import Excel / CSV
-
+            <button class="btn-dark" onclick="logout()">
+                Logout
             </button>
+        </div>
+
+    </div>
 
 
-            <input
-                type="file"
-                id="csvFile"
-                accept=".csv,.xlsx,.xls"
-                style="display:none"
-                onchange="importFile(event)">
+    <!-- MESSAGE -->
+    <div id="mainMessage" class="message"></div>
 
+
+    <!-- STATS -->
+    <div class="stats">
+
+        <div class="stat">
+            <h3>Total Customers</h3>
+            <strong id="totalCustomers">0</strong>
+        </div>
+
+        <div class="stat">
+            <h3>Due Today</h3>
+            <strong id="dueToday">0</strong>
+        </div>
+
+        <div class="stat">
+            <h3>Next 7 Days</h3>
+            <strong id="next7Days">0</strong>
+        </div>
+
+        <div class="stat">
+            <h3>Expired</h3>
+            <strong id="expiredCustomers">0</strong>
+        </div>
+
+    </div>
+
+
+    <!-- ADD CUSTOMER -->
+    <div id="customerFormCard" class="card hidden">
+
+        <h2 id="formTitle">Add Customer</h2>
+
+        <div class="form-grid">
+
+            <label>
+                Name *
+                <input type="text" id="customerName" placeholder="Customer Name">
+            </label>
+
+            <label>
+                Mobile *
+                <input type="tel" id="customerMobile" placeholder="10 digit mobile number">
+            </label>
+
+            <label>
+                Vehicle Number
+                <input type="text" id="vehicleNumber" placeholder="HR12AB1234">
+            </label>
+
+            <label>
+                GPS Expiry Date *
+                <input type="date" id="expiryDate">
+            </label>
 
         </div>
 
-
-    </div>
-
-
-    <input
-        class="search"
-        type="text"
-        id="searchBox"
-        placeholder="Search Name / Mobile / Vehicle Number"
-        oninput="renderCustomers()">
-
-
-    <div class="table-wrap">
-
-
-        <table>
-
-
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Name
-                    </th>
-
-                    <th>
-                        Mobile
-                    </th>
-
-                    <th>
-                        Vehicle
-                    </th>
-
-                    <th>
-                        Expiry
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Actions
-                    </th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody id="customerTable">
-
-            </tbody>
-
-
-        </table>
-
-
-    </div>
-
-
-</div>
-
-
-<!-- =========================
-     REMINDER CENTER
-========================= -->
-
-<div class="card">
-
-
-    <div class="topbar">
-
-        <h2>
-            Reminder Center
-        </h2>
-
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="loadAll()">
-
-            Refresh
-
+        <button class="btn-success" onclick="saveCustomer()">
+            Save Customer
         </button>
 
-    </div>
+        <button class="btn-gray" onclick="hideCustomerForm()">
+            Cancel
+        </button>
 
-
-    <div class="table-wrap">
-
-
-        <table>
-
-
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Customer
-                    </th>
-
-                    <th>
-                        Mobile
-                    </th>
-
-                    <th>
-                        Vehicle
-                    </th>
-
-                    <th>
-                        Reminder
-                    </th>
-
-                    <th>
-                        Date
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Actions
-                    </th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody id="reminderTable">
-
-            </tbody>
-
-
-        </table>
-
+        <input type="hidden" id="editCustomerId">
 
     </div>
 
 
+    <!-- CUSTOMER LIST -->
+    <div class="card">
+
+        <div class="topbar">
+
+            <h2>Customers</h2>
+
+            <div>
+                <button class="btn-primary" onclick="downloadTemplate()">
+                    Download Template
+                </button>
+
+                <button class="btn-success" onclick="document.getElementById('csvFile').click()">
+                    Import Excel / CSV
+                </button>
+
+                <input
+                    type="file"
+                    id="csvFile"
+                    accept=".csv,.xlsx,.xls"
+                    style="display:none"
+                    onchange="importFile(event)"
+                >
+            </div>
+
+        </div>
+
+        <input
+            class="search"
+            type="text"
+            id="searchBox"
+            placeholder="Search Name / Mobile / Vehicle Number"
+            oninput="renderCustomers()"
+        >
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Vehicle</th>
+                        <th>Expiry</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="customerTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- REMINDER CENTER -->
+    <div class="card">
+
+        <div class="topbar">
+
+            <h2>Reminder Center</h2>
+
+            <button class="btn-gray" onclick="loadAll()">
+                Refresh
+            </button>
+
+        </div>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Mobile</th>
+                        <th>Vehicle</th>
+                        <th>Reminder</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="reminderTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
 </div>
 
 
-</div>
-
-</div>
-
-
-<!-- =========================
-     EDIT MODAL
-========================= -->
-
-<div id="editModal"
-     class="modal hidden">
-
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal hidden">
 
     <div class="modal-box">
 
-
-        <h2>
-            Edit Customer
-        </h2>
-
+        <h2>Edit Customer</h2>
 
         <label>
-
             Name
-
-            <input
-                type="text"
-                id="editName">
-
+            <input type="text" id="editName">
         </label>
 
-
         <label>
-
             Mobile
-
-            <input
-                type="tel"
-                id="editMobile">
-
+            <input type="tel" id="editMobile">
         </label>
 
-
         <label>
-
             Vehicle Number
-
-            <input
-                type="text"
-                id="editVehicle">
-
+            <input type="text" id="editVehicle">
         </label>
-
 
         <label>
-
             GPS Expiry Date
-
-            <input
-                type="date"
-                id="editExpiry">
-
+            <input type="date" id="editExpiry">
         </label>
 
-
-        <button
-            type="button"
-            class="btn-success"
-            onclick="updateCustomer()">
-
+        <button class="btn-success" onclick="updateCustomer()">
             Update
-
         </button>
 
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="closeEdit()">
-
+        <button class="btn-gray" onclick="closeEdit()">
             Cancel
-
         </button>
-
 
     </div>
 
 </div>
 
 
+
 <script>
-
-/* PART 2 YAHAN SE AAYEGA */
-
-    /* =====================================================
-   SUPABASE CONFIG
-===================================================== */
-
-const SUPABASE_URL =
-    "https://gynvihsyjpcaehnynoqr.supabase.co";
+const SUPABASE_URL = "https://gynvihsyjpcaehnynoqr.supabase.co";
 
 /*
-   अपना existing PUBLISHABLE KEY यहाँ रखें.
-   Secret / service_role key इस्तेमाल न करें.
+  IMPORTANT:
+  Yahan apni existing Supabase PUBLISHABLE KEY paste karein.
+  Secret / service_role key mat lagana.
 */
-const SUPABASE_KEY =
-    "sb_publishable_-wH5ndigNOzzodu_dAoUwA_Fzy5YKjL";
+const SUPABASE_KEY = "YOUR_EXISTING_PUBLISHABLE_KEY";
 
-
-const client =
-    supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-    );
-
-
-/* =====================================================
-   GLOBAL DATA
-===================================================== */
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let customers = [];
 let reminders = [];
-
 let currentEditId = null;
 
+document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        const { data, error } = await client.auth.getSession();
+        if (error) throw error;
 
-/* =====================================================
-   PAGE START
-===================================================== */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async function(){
-
-        try{
-
-            const {data,error} =
-                await client.auth.getSession();
-
-            if(error){
-
-                console.error(error);
-
-                showLogin();
-
-                return;
-
-            }
-
-
-            if(data.session){
-
-                await showApp();
-
-            }else{
-
-                showLogin();
-
-            }
-
-        }catch(error){
-
-            console.error(error);
-
+        if (data.session) {
+            await showApp();
+        } else {
             showLogin();
-
         }
-
+    } catch (e) {
+        console.error("STARTUP ERROR:", e);
+        showLogin();
+        showMessage("loginMessage", "CRM start error: " + e.message, "error");
     }
-);
+});
 
-
-/* =====================================================
-   LOGIN / SIGNUP SCREEN
-===================================================== */
-
-function showLogin(){
-
-    document
-        .getElementById("loginScreen")
-        .classList.remove("hidden");
-
-    document
-        .getElementById("signupScreen")
-        .classList.add("hidden");
-
-    document
-        .getElementById("app")
-        .classList.add("hidden");
-
+function showLogin() {
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("signupScreen").classList.add("hidden");
+    document.getElementById("app").classList.add("hidden");
 }
 
-
-function showSignup(){
-
-    document
-        .getElementById("loginScreen")
-        .classList.add("hidden");
-
-    document
-        .getElementById("signupScreen")
-        .classList.remove("hidden");
-
+function showSignup() {
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("signupScreen").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
 }
 
+async function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
 
-async function signup(){
-
-    const email =
-        document
-        .getElementById("signupEmail")
-        .value
-        .trim();
-
-    const password =
-        document
-        .getElementById("signupPassword")
-        .value;
-
-
-    if(!email || !password){
-
-        showMessage(
-            "signupMessage",
-            "Email and password required",
-            "error"
-        );
-
+    if (!email || !password) {
+        showMessage("loginMessage", "Email and password required", "error");
         return;
-
     }
 
-
-    if(password.length < 6){
-
-        showMessage(
-            "signupMessage",
-            "Password must be at least 6 characters",
-            "error"
-        );
-
-        return;
-
+    const btn = document.querySelector("#loginScreen .btn-primary");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Logging in...";
     }
 
-
-    const {data,error} =
-        await client.auth.signUp({
-
-            email:email,
-
-            password:password
-
+    try {
+        const { data, error } = await client.auth.signInWithPassword({
+            email,
+            password
         });
 
+        if (error) throw error;
 
-    if(error){
-
-        showMessage(
-            "signupMessage",
-            error.message,
-            "error"
-        );
-
-        return;
-
-    }
-
-
-    if(data.session){
+        if (!data || !data.session) {
+            throw new Error("Login successful nahi hua. Supabase session nahi mili.");
+        }
 
         await showApp();
 
-    }else{
-
-        showMessage(
-            "signupMessage",
-            "Account created. Please verify your email if required.",
-            "success"
-        );
-
+    } catch (e) {
+        console.error("LOGIN ERROR:", e);
+        showMessage("loginMessage", "Login failed: " + e.message, "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Login";
+        }
     }
-
 }
 
+async function signup() {
+    const email = document.getElementById("signupEmail").value.trim();
+    const password = document.getElementById("signupPassword").value;
 
-/* =====================================================
-   LOGIN
-===================================================== */
-
-async function login(){
-
-    const email =
-        document
-        .getElementById("loginEmail")
-        .value
-        .trim();
-
-    const password =
-        document
-        .getElementById("loginPassword")
-        .value;
-
-
-    if(!email || !password){
-
-        showMessage(
-            "loginMessage",
-            "Email and password required",
-            "error"
-        );
-
+    if (!email || !password) {
+        showMessage("signupMessage", "Email and password required", "error");
         return;
-
     }
 
-
-    const {data,error} =
-        await client.auth.signInWithPassword({
-
-            email:email,
-
-            password:password
-
-        });
-
-
-    if(error){
-
-        showMessage(
-            "loginMessage",
-            error.message,
-            "error"
-        );
-
+    if (password.length < 6) {
+        showMessage("signupMessage", "Password must be at least 6 characters", "error");
         return;
-
     }
 
+    try {
+        const { data, error } = await client.auth.signUp({ email, password });
+        if (error) throw error;
 
-    await showApp();
-
+        if (data.session) {
+            await showApp();
+        } else {
+            showMessage(
+                "signupMessage",
+                "Account created. Email confirmation required ho sakti hai.",
+                "success"
+            );
+        }
+    } catch (e) {
+        console.error("SIGNUP ERROR:", e);
+        showMessage("signupMessage", "Signup failed: " + e.message, "error");
+    }
 }
 
-
-/* =====================================================
-   LOGOUT
-===================================================== */
-
-async function logout(){
-
+async function logout() {
     await client.auth.signOut();
-
     customers = [];
-
     reminders = [];
-
     showLogin();
-
 }
 
+async function showApp() {
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("signupScreen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
 
-/* =====================================================
-   SHOW APP
-===================================================== */
+    try {
+        const { data, error } = await client.auth.getUser();
+        if (error) throw error;
 
-async function showApp(){
+        const userEmail = document.getElementById("userEmail");
+        if (userEmail) userEmail.innerText = data.user?.email || "";
 
-    document
-        .getElementById("loginScreen")
-        .classList.add("hidden");
-
-    document
-        .getElementById("signupScreen")
-        .classList.add("hidden");
-
-    document
-        .getElementById("app")
-        .classList.remove("hidden");
-
-
-    const {
-        data:{user}
-    } =
-        await client.auth.getUser();
-
-
-    if(user){
-
-        document
-            .getElementById("userEmail")
-            .innerText =
-            user.email || "";
-
+        await loadAll();
+    } catch (e) {
+        console.error("APP LOAD ERROR:", e);
+        showMessage("mainMessage", "Dashboard load error: " + e.message, "error");
     }
-
-
-    await loadAll();
-
 }
 
-
-/* =====================================================
-   LOAD ALL
-===================================================== */
-
-async function loadAll(){
-
-    try{
-
-        /*
-           Customers first.
-           Dashboard will work even if
-           reminders have an error.
-        */
-
-        await loadCustomers();
-
-
-        updateDashboard();
-
-
-        renderCustomers();
-
-
-        /*
-           Load reminders separately.
-        */
-
-        await loadReminders();
-
-
-        renderReminders();
-
-
-    }catch(error){
-
-        console.error(
-            "LOAD ALL ERROR:",
-            error
-        );
-
-        showMessage(
-            "mainMessage",
-            "Data loading error: " +
-            error.message,
-            "error"
-        );
-
-    }
-
+async function loadAll() {
+    await loadCustomers();
+    await loadReminders();
+    updateDashboard();
+    renderCustomers();
+    renderReminders();
 }
 
-
-/* =====================================================
-   LOAD CUSTOMERS
-   IMPORTANT:
-   Supabase normally returns only a limited number
-   of rows in one request.
-
-   We therefore load customers in batches.
-===================================================== */
-
-async function loadCustomers(){
-
+async function loadCustomers() {
     customers = [];
+    const batchSize = 500;
 
-
-    const BATCH_SIZE = 500;
-
-    let from = 0;
-
-
-    while(true){
-
-        const to =
-            from + BATCH_SIZE - 1;
-
-
-        const {
-            data,
-            error
-        } =
-            await client
+    for (let from = 0; ; from += batchSize) {
+        const { data, error } = await client
             .from("customers")
             .select("*")
-            .order(
-                "created_at",
-                {
-                    ascending:false
-                }
-            )
-            .range(
-                from,
-                to
-            );
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, from + batchSize - 1);
 
+        if (error) throw error;
 
-        if(error){
-
-            console.error(
-                "CUSTOMER LOAD ERROR:",
-                error
-            );
-
-
-            showMessage(
-                "mainMessage",
-                "Customer load error: " +
-                error.message,
-                "error"
-            );
-
-
-            return;
-
-        }
-
-
-        if(data && data.length){
-
-            customers =
-                customers.concat(data);
-
-        }
-
-
-        /*
-           If less than 500 came back,
-           there are no more records.
-        */
-
-        if(
-            !data ||
-            data.length < BATCH_SIZE
-        ){
-
-            break;
-
-        }
-
-
-        from += BATCH_SIZE;
-
-
-        /*
-           Safety limit.
-           Allows up to 20,000 customers.
-        */
-
-        if(from >= 20000){
-
-            break;
-
-        }
-
+        if (data && data.length) customers.push(...data);
+        if (!data || data.length < batchSize) break;
+        if (from >= 20000) break;
     }
 
-
-    console.log(
-        "TOTAL CUSTOMERS LOADED:",
-        customers.length
-    );
-
-
-    /*
-       Show count immediately.
-    */
-
-    const total =
-        document.getElementById(
-            "totalCustomers"
-        );
-
-
-    if(total){
-
-        total.innerText =
-            customers.length;
-
-    }
-
+    const el = document.getElementById("totalCustomers");
+    if (el) el.innerText = customers.length;
 }
 
-
-/* =====================================================
-   LOAD REMINDERS
-===================================================== */
-
-async function loadReminders(){
-
+async function loadReminders() {
     reminders = [];
+    const batchSize = 500;
 
-
-    const BATCH_SIZE = 500;
-
-    let from = 0;
-
-
-    while(true){
-
-        const to =
-            from + BATCH_SIZE - 1;
-
-
-        const {
-            data,
-            error
-        } =
-            await client
+    for (let from = 0; ; from += batchSize) {
+        const { data, error } = await client
             .from("reminders")
             .select(`
                 *,
@@ -1457,271 +787,477 @@ async function loadReminders(){
                     expiry_date
                 )
             `)
-            .order(
-                "reminder_date",
-                {
-                    ascending:true
-                }
-            )
-            .range(
-                from,
-                to
-            );
+            .order("reminder_date", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, from + batchSize - 1);
 
-
-        if(error){
-
-            console.error(
-                "REMINDER LOAD ERROR:",
-                error
-            );
-
+        if (error) {
+            console.error("REMINDER LOAD ERROR:", error);
             reminders = [];
-
-            return;
-
-        }
-
-
-        if(data && data.length){
-
-            reminders =
-                reminders.concat(data);
-
-        }
-
-
-        if(
-            !data ||
-            data.length < BATCH_SIZE
-        ){
-
             break;
-
         }
 
-
-        from += BATCH_SIZE;
-
-
-        if(from >= 20000){
-
-            break;
-
-        }
-
+        if (data && data.length) reminders.push(...data);
+        if (!data || data.length < batchSize) break;
+        if (from >= 20000) break;
     }
-
-
-    console.log(
-        "TOTAL REMINDERS LOADED:",
-        reminders.length
-    );
-
 }
 
+function showAddCustomer() {
+    document.getElementById("customerFormCard").classList.remove("hidden");
+    document.getElementById("formTitle").innerText = "Add Customer";
+    document.getElementById("editCustomerId").value = "";
+    document.getElementById("customerName").value = "";
+    document.getElementById("customerMobile").value = "";
+    document.getElementById("vehicleNumber").value = "";
+    document.getElementById("expiryDate").value = "";
+    window.scrollTo({
+        top: document.getElementById("customerFormCard").offsetTop - 20,
+        behavior: "smooth"
+    });
+}
 
-/* =====================================================
-   MESSAGE
-===================================================== */
+function hideCustomerForm() {
+    document.getElementById("customerFormCard").classList.add("hidden");
+}
 
-function showMessage(
-    elementId,
-    message,
-    type
-){
+async function saveCustomer() {
+    const name = document.getElementById("customerName").value.trim();
+    const mobile = document.getElementById("customerMobile").value.trim();
+    const vehicle = document.getElementById("vehicleNumber").value.trim();
+    const expiry = document.getElementById("expiryDate").value;
+    const editId = document.getElementById("editCustomerId").value;
 
-    const element =
-        document.getElementById(
-            elementId
-        );
-
-
-    if(!element){
-
+    if (!name || !mobile || !expiry) {
+        showMessage("mainMessage", "Name, Mobile and Expiry Date required", "error");
         return;
-
     }
 
+    try {
+        let result;
 
-    element.innerText =
-        message;
+        if (editId) {
+            result = await client.from("customers").update({
+                name,
+                mobile,
+                vehicle_no: vehicle || null,
+                expiry_date: expiry,
+                updated_at: new Date().toISOString()
+            }).eq("id", editId);
+        } else {
+            result = await client.from("customers").insert({
+                name,
+                mobile,
+                vehicle_no: vehicle || null,
+                expiry_date: expiry
+            });
+        }
 
+        if (result.error) throw result.error;
 
-    element.className =
-        "message " + type;
+        hideCustomerForm();
+        showMessage("mainMessage", editId ? "Customer updated" : "Customer added", "success");
+        await loadAll();
 
-
-    element.style.display =
-        "block";
-
-
-    setTimeout(
-        function(){
-
-            element.style.display =
-                "none";
-
-        },
-        5000
-    );
-
+    } catch (e) {
+        console.error("SAVE CUSTOMER ERROR:", e);
+        showMessage("mainMessage", "Save failed: " + e.message, "error");
+    }
 }
 
+function openEdit(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
 
-/* =====================================================
-   DATE HELPERS
-===================================================== */
+    currentEditId = id;
+    document.getElementById("editName").value = c.name || "";
+    document.getElementById("editMobile").value = c.mobile || "";
+    document.getElementById("editVehicle").value = c.vehicle_no || "";
+    document.getElementById("editExpiry").value = c.expiry_date || "";
+    document.getElementById("editModal").classList.remove("hidden");
+}
 
-function parseLocalDate(value){
+function closeEdit() {
+    currentEditId = null;
+    document.getElementById("editModal").classList.add("hidden");
+}
 
-    if(!value){
+async function updateCustomer() {
+    if (!currentEditId) return;
 
-        return null;
+    const name = document.getElementById("editName").value.trim();
+    const mobile = document.getElementById("editMobile").value.trim();
+    const vehicle = document.getElementById("editVehicle").value.trim();
+    const expiry = document.getElementById("editExpiry").value;
 
+    if (!name || !mobile || !expiry) {
+        alert("Name, Mobile and Expiry Date are required.");
+        return;
     }
 
+    try {
+        const { error } = await client.from("customers").update({
+            name,
+            mobile,
+            vehicle_no: vehicle || null,
+            expiry_date: expiry,
+            updated_at: new Date().toISOString()
+        }).eq("id", currentEditId);
 
-    const parts =
-        String(value)
-        .split("-");
+        if (error) throw error;
 
-
-    if(parts.length === 3){
-
-        return new Date(
-
-            Number(parts[0]),
-
-            Number(parts[1]) - 1,
-
-            Number(parts[2])
-
-        );
-
+        closeEdit();
+        showMessage("mainMessage", "Customer updated", "success");
+        await loadAll();
+    } catch (e) {
+        console.error("UPDATE ERROR:", e);
+        showMessage("mainMessage", "Update failed: " + e.message, "error");
     }
+}
 
+async function deleteCustomer(id) {
+    if (!confirm("Delete this customer?")) return;
+
+    try {
+        const { error } = await client.from("customers").delete().eq("id", id);
+        if (error) throw error;
+
+        showMessage("mainMessage", "Customer deleted", "success");
+        await loadAll();
+    } catch (e) {
+        console.error("DELETE ERROR:", e);
+        showMessage("mainMessage", "Delete failed: " + e.message, "error");
+    }
+}
+
+function renderCustomers() {
+    const tbody = document.getElementById("customerTable");
+    if (!tbody) return;
+
+    const q = (document.getElementById("searchBox")?.value || "").toLowerCase().trim();
+
+    const list = customers.filter(c => {
+        if (!q) return true;
+        return [
+            c.name,
+            c.mobile,
+            c.vehicle_no
+        ].some(v => String(v || "").toLowerCase().includes(q));
+    });
+
+    tbody.innerHTML = list.map(c => {
+        const status = customerStatus(c.expiry_date);
+
+        return `
+            <tr>
+                <td>${escapeHtml(c.name)}</td>
+                <td>${escapeHtml(c.mobile)}</td>
+                <td>${escapeHtml(c.vehicle_no || "-")}</td>
+                <td>${formatDate(c.expiry_date)}</td>
+                <td><span class="badge ${status.className}">${status.label}</span></td>
+                <td>
+                    <button class="btn-primary" onclick="callCustomer('${escapeJs(c.mobile)}')">Call</button>
+                    <button class="btn-success" onclick="whatsappCustomer('${escapeJs(c.name)}','${escapeJs(c.mobile)}','${escapeJs(c.expiry_date)}')">WhatsApp</button>
+                    <button class="btn-warning" onclick="openEdit('${c.id}')">Edit</button>
+                    <button class="btn-danger" onclick="deleteCustomer('${c.id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="6">No customers found.</td></tr>`;
+    }
+}
+
+function customerStatus(expiry) {
+    const d = parseLocalDate(expiry);
+    const today = startOfDay(new Date());
+
+    if (!d || isNaN(d)) return {label:"-", className:"badge-missed"};
+
+    const diff = Math.round((startOfDay(d) - today) / 86400000);
+
+    if (diff < 0) return {label:"Expired", className:"badge-missed"};
+    if (diff === 0) return {label:"Today", className:"badge-today"};
+    return {label:"Active", className:"badge-upcoming"};
+}
+
+function updateDashboard() {
+    const today = startOfDay(new Date());
+    const todayStr = toISODate(today);
+
+    let dueToday = 0;
+    let next7 = 0;
+    let expired = 0;
+
+    customers.forEach(c => {
+        const d = parseLocalDate(c.expiry_date);
+        if (!d || isNaN(d)) return;
+
+        const diff = Math.round((startOfDay(d) - today) / 86400000);
+
+        if (diff < 0) expired++;
+        else if (diff === 0) dueToday++;
+        else if (diff >= 1 && diff <= 7) next7++;
+    });
+
+    document.getElementById("totalCustomers").innerText = customers.length;
+    document.getElementById("dueToday").innerText = dueToday;
+    document.getElementById("next7Days").innerText = next7;
+    document.getElementById("expiredCustomers").innerText = expired;
+}
+
+function renderReminders() {
+    const tbody = document.getElementById("reminderTable");
+    if (!tbody) return;
+
+    const today = toISODate(startOfDay(new Date()));
+
+    const list = reminders
+        .filter(r => r.status !== "done")
+        .filter(r => r.reminder_date <= today);
+
+    tbody.innerHTML = list.map(r => {
+        const c = r.customers || {};
+
+        return `
+            <tr>
+                <td>${escapeHtml(c.name || "-")}</td>
+                <td>${escapeHtml(c.mobile || "-")}</td>
+                <td>${escapeHtml(c.vehicle_no || "-")}</td>
+                <td>${escapeHtml(formatReminderType(r.reminder_type))}</td>
+                <td>${formatDate(r.reminder_date)}</td>
+                <td><span class="badge badge-today">${escapeHtml(r.status || "pending")}</span></td>
+                <td>
+                    <button class="btn-primary" onclick="callCustomer('${escapeJs(c.mobile || "")}')">Call</button>
+                    <button class="btn-success" onclick="whatsappCustomer('${escapeJs(c.name || "")}','${escapeJs(c.mobile || "")}','${escapeJs(c.expiry_date || "")}')">WhatsApp</button>
+                    <button class="btn-warning" onclick="markReminderDone('${r.id}')">Mark Done</button>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="7">No pending reminders.</td></tr>`;
+    }
+}
+
+async function markReminderDone(id) {
+    try {
+        const { error } = await client
+            .from("reminders")
+            .update({
+                status: "done",
+                sent_at: new Date().toISOString()
+            })
+            .eq("id", id);
+
+        if (error) throw error;
+
+        showMessage("mainMessage", "Reminder marked as done", "success");
+        await loadAll();
+    } catch (e) {
+        showMessage("mainMessage", "Could not update reminder: " + e.message, "error");
+    }
+}
+
+function callCustomer(mobile) {
+    const number = cleanMobile(mobile);
+    if (!number) return;
+    window.location.href = "tel:+" + number;
+}
+
+function whatsappCustomer(name, mobile, expiry) {
+    const number = cleanMobile(mobile);
+    if (!number) return;
+
+    const message =
+        `Namaste ${name} Ji, aapke GPS Tracker ka plan ${formatDate(expiry)} ko expire ho raha hai. Renewal ke liye sampark karein: 9097979200`;
+
+    window.open(
+        "https://wa.me/" + number + "?text=" + encodeURIComponent(message),
+        "_blank"
+    );
+}
+
+function downloadTemplate() {
+    const rows = [{
+        Name: "Example Customer",
+        Mobile: "9876543210",
+        Vehicle_Number: "HR12AB1234",
+        Expiry_Date: "2026-12-31"
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Customers");
+    XLSX.writeFile(wb, "Zad_Plus_GPS_CRM_Template.xlsx");
+}
+
+async function importFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, {type:"array", cellDates:false});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+
+        const insertRows = [];
+
+        rows.forEach(row => {
+            const name = row.Name ?? row.name ?? "";
+            const mobile = row.Mobile ?? row.mobile ?? "";
+            const vehicle = row.Vehicle_Number ?? row.vehicle_no ?? row.Vehicle ?? "";
+            const expiry = row.Expiry_Date ?? row.expiry_date ?? row.Expiry ?? "";
+
+            if (String(name).trim() && String(mobile).trim() && expiry) {
+                insertRows.push({
+                    name: String(name).trim(),
+                    mobile: String(mobile).trim(),
+                    vehicle_no: String(vehicle).trim() || null,
+                    expiry_date: normalizeExcelDate(expiry)
+                });
+            }
+        });
+
+        if (!insertRows.length) {
+            alert("No valid records found. Please use Download Template.");
+            return;
+        }
+
+        let total = 0;
+
+        for (let i = 0; i < insertRows.length; i += 500) {
+            const batch = insertRows.slice(i, i + 500);
+            const { error } = await client.from("customers").insert(batch);
+            if (error) throw error;
+            total += batch.length;
+        }
+
+        alert(total + " customers imported successfully.");
+        event.target.value = "";
+        await loadAll();
+
+    } catch (e) {
+        console.error("IMPORT ERROR:", e);
+        alert("Import failed: " + e.message);
+        event.target.value = "";
+    }
+}
+
+function parseLocalDate(value) {
+    if (!value) return null;
+
+    const s = String(value);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [y,m,d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d);
+    }
 
     return new Date(value);
-
 }
 
-
-function startOfDay(date){
-
-    return new Date(
-
-        date.getFullYear(),
-
-        date.getMonth(),
-
-        date.getDate()
-
-    );
-
+function startOfDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function toISODate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
 
-function formatDate(value){
+function formatDate(value) {
+    const d = parseLocalDate(value);
+    if (!d || isNaN(d)) return "-";
 
-    if(!value){
+    return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`;
+}
 
-        return "-";
+function normalizeExcelDate(value) {
+    if (!value) return null;
 
+    if (typeof value === "number") {
+        const d = XLSX.SSF.parse_date_code(value);
+        return `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`;
     }
 
+    const s = String(value).trim();
 
-    const d =
-        parseLocalDate(value);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-
-    if(!d || isNaN(d)){
-
-        return "-";
-
+    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
+        const [d,m,y] = s.split("-");
+        return `${y}-${m}-${d}`;
     }
 
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+        const [d,m,y] = s.split("/");
+        return `${y}-${m}-${d}`;
+    }
 
-    const day =
-        String(
-            d.getDate()
-        ).padStart(2,"0");
-
-
-    const month =
-        String(
-            d.getMonth() + 1
-        ).padStart(2,"0");
-
-
-    const year =
-        d.getFullYear();
-
-
-    return (
-        day +
-        "-" +
-        month +
-        "-" +
-        year
-    );
-
+    return s;
 }
 
-
-/* =====================================================
-   HTML SECURITY
-===================================================== */
-
-function escapeHtml(value){
-
-    return String(
-        value || ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
+function formatReminderType(type) {
+    return ({
+        "30_days":"30 Days Before",
+        "15_days":"15 Days Before",
+        "7_days":"7 Days Before",
+        "1_day":"1 Day Before",
+        "expiry_day":"Expiry Day"
+    })[type] || type;
 }
 
+function cleanMobile(mobile) {
+    let n = String(mobile || "").replace(/\D/g, "");
 
-function escapeJs(value){
+    if (n.length === 10) n = "91" + n;
+    if (n.startsWith("0") && n.length === 11) n = "91" + n.substring(1);
 
-    return String(
-        value || ""
-    )
-    .replace(
-        /\\/g,
-        "\\\\"
-    )
-    .replace(
-        /'/g,
-        "\\'"
-    )
-    .replace(
-        /"/g,
-        '\\"'
-    )
-    .replace(
-        /\r?\n/g,
-        "\\n"
-    );
-
+    return n;
 }
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
+function escapeJs(value) {
+    return String(value ?? "")
+        .replace(/\\/g,"\\\\")
+        .replace(/'/g,"\\'")
+        .replace(/"/g,'\\"')
+        .replace(/\n/g," ");
+}
+
+function showMessage(id, text, type) {
+    const box = document.getElementById(id);
+    if (!box) return;
+
+    box.innerText = text;
+    box.className = "message " + (type === "success" ? "success" : "error");
+    box.style.display = "block";
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 6000);
+}
+
+client.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+        showLogin();
+    }
+});
+</script>
+</body>
+</html>
