@@ -486,7 +486,7 @@ th{
             type="text"
             id="searchBox"
             placeholder="Search Name / Mobile / Vehicle Number"
-            oninput="renderCustomers()"
+            oninput="resetCustomerPage()"
         >
 
         <div class="table-wrap">
@@ -611,6 +611,8 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let customers = [];
 let reminders = [];
 let currentEditId = null;
+let customerPage = 1;
+const CUSTOMER_PAGE_SIZE = 100;
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
@@ -930,6 +932,11 @@ async function deleteCustomer(id) {
     }
 }
 
+function resetCustomerPage() {
+    customerPage = 1;
+    renderCustomers();
+}
+
 function renderCustomers() {
     const tbody = document.getElementById("customerTable");
     if (!tbody) return;
@@ -945,7 +952,13 @@ function renderCustomers() {
         ].some(v => String(v || "").toLowerCase().includes(q));
     });
 
-    tbody.innerHTML = list.map(c => {
+    const totalPages = Math.max(1, Math.ceil(list.length / CUSTOMER_PAGE_SIZE));
+    if (customerPage > totalPages) customerPage = totalPages;
+
+    const from = (customerPage - 1) * CUSTOMER_PAGE_SIZE;
+    const pageRows = list.slice(from, from + CUSTOMER_PAGE_SIZE);
+
+    tbody.innerHTML = pageRows.map(c => {
         const status = customerStatus(c.expiry_date);
 
         return `
@@ -965,11 +978,36 @@ function renderCustomers() {
         `;
     }).join("");
 
-    if (!list.length) {
+    if (!pageRows.length) {
         tbody.innerHTML = `<tr><td colspan="6">No customers found.</td></tr>`;
+    }
+
+    const oldPager = document.getElementById("customerPager");
+    if (oldPager) oldPager.remove();
+
+    const tableWrap = tbody.closest(".table-wrap");
+    if (tableWrap) {
+        const pager = document.createElement("div");
+        pager.id = "customerPager";
+        pager.style.cssText = "display:flex;justify-content:center;align-items:center;gap:10px;padding:15px;flex-wrap:wrap;";
+
+        pager.innerHTML = `
+            <button class="btn-gray" ${customerPage <= 1 ? "disabled" : ""} onclick="changeCustomerPage(-1)">Previous</button>
+            <strong>Page ${customerPage} / ${totalPages}</strong>
+            <span class="small">${list.length} customers found</span>
+            <button class="btn-gray" ${customerPage >= totalPages ? "disabled" : ""} onclick="changeCustomerPage(1)">Next</button>
+        `;
+
+        tableWrap.appendChild(pager);
     }
 }
 
+function changeCustomerPage(step) {
+    customerPage += step;
+    renderCustomers();
+    const table = document.getElementById("customerTable");
+    if (table) table.closest(".card")?.scrollIntoView({behavior:"smooth", block:"start"});
+}
 function customerStatus(expiry) {
     const d = parseLocalDate(expiry);
     const today = startOfDay(new Date());
