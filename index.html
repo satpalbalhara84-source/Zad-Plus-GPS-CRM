@@ -1045,1050 +1045,3650 @@ th{
 ========================= -->
 
 <script>
-    <!DOCTYPE html>
-<html lang="en">
-<head>
+      /* =====================================================
+   SUPABASE CONFIG
+===================================================== */
 
-<meta charset="UTF-8">
+const SUPABASE_URL =
+    "https://gynvihsyjpcaehnynoqr.supabase.co";
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+/*
+   IMPORTANT:
+   Yahan apni existing Supabase PUBLISHABLE KEY rakhein.
+   Secret / service_role key kabhi mat lagana.
+*/
+const SUPABASE_KEY =
+    "sb_publishable_-wH5ndigNOzzodu_dAoUwA_Fzy5YKjL";
 
-<title>Zad Plus GPS CRM</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+const client =
+    supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 
-<style>
+/* =====================================================
+   GLOBAL DATA
+===================================================== */
 
-*{
-    box-sizing:border-box;
+let customers = [];
+
+let reminders = [];
+
+let currentEditId = null;
+
+let customerFilter = "all";
+
+let customerPage = 1;
+
+
+/*
+   IMPORTANT:
+   Sirf 30 customers ek page par.
+*/
+const CUSTOMER_PAGE_SIZE = 30;
+
+
+/*
+   Maximum customers jo browser mein load honge.
+   5000 customers tak.
+*/
+const MAX_CUSTOMERS = 5000;
+
+
+
+/* =====================================================
+   PAGE START
+===================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async function(){
+
+        try{
+
+            const {
+                data,
+                error
+            } =
+                await client.auth.getSession();
+
+
+            if(error){
+
+                throw error;
+
+            }
+
+
+            if(data.session){
+
+                await showApp();
+
+            }else{
+
+                showLogin();
+
+            }
+
+        }catch(error){
+
+            console.error(
+                "STARTUP ERROR:",
+                error
+            );
+
+            showLogin();
+
+            showMessage(
+                "loginMessage",
+                "CRM start error: " +
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+);
+
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function showLogin(){
+
+    document
+        .getElementById("loginScreen")
+        .classList.remove("hidden");
+
+
+    document
+        .getElementById("signupScreen")
+        .classList.add("hidden");
+
+
+    document
+        .getElementById("app")
+        .classList.add("hidden");
+
 }
 
-body{
-    margin:0;
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f7fb;
-    color:#222;
+
+
+function showSignup(){
+
+    document
+        .getElementById("loginScreen")
+        .classList.add("hidden");
+
+
+    document
+        .getElementById("signupScreen")
+        .classList.remove("hidden");
+
+
+    document
+        .getElementById("app")
+        .classList.add("hidden");
+
 }
 
-header{
-    background:#111827;
-    color:white;
-    padding:18px;
-    text-align:center;
-}
 
-header h1{
-    margin:0;
-    font-size:24px;
-}
 
-header p{
-    margin:5px 0 0;
-    opacity:.8;
-}
+/* =====================================================
+   LOGIN FUNCTION
+===================================================== */
 
-.container{
-    max-width:1200px;
-    margin:auto;
-    padding:20px;
-}
+async function login(){
 
-.card{
-    background:white;
-    border-radius:14px;
-    padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 3px 15px rgba(0,0,0,.08);
-}
+    const email =
+        document
+            .getElementById("loginEmail")
+            .value
+            .trim();
 
-.hidden{
-    display:none !important;
-}
 
-h2{
-    margin-top:0;
-}
+    const password =
+        document
+            .getElementById("loginPassword")
+            .value;
 
-input{
-    width:100%;
-    padding:12px;
-    border:1px solid #d1d5db;
-    border-radius:8px;
-    margin-top:6px;
-    font-size:15px;
-}
 
-label{
-    display:block;
-    font-weight:bold;
-    margin-bottom:15px;
-}
+    if(!email || !password){
 
-button{
-    border:0;
-    padding:11px 16px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-    margin:4px;
-}
+        showMessage(
+            "loginMessage",
+            "Email and password required",
+            "error"
+        );
 
-button:disabled{
-    opacity:.5;
-    cursor:not-allowed;
-}
+        return;
 
-.btn-primary{
-    background:#2563eb;
-    color:white;
-}
-
-.btn-success{
-    background:#16a34a;
-    color:white;
-}
-
-.btn-danger{
-    background:#dc2626;
-    color:white;
-}
-
-.btn-warning{
-    background:#f59e0b;
-    color:white;
-}
-
-.btn-dark{
-    background:#111827;
-    color:white;
-}
-
-.btn-gray{
-    background:#e5e7eb;
-    color:#111;
-}
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-    margin-bottom:20px;
-}
-
-.stat{
-    background:white;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 3px 12px rgba(0,0,0,.06);
-}
-
-.stat h3{
-    margin:0;
-    color:#6b7280;
-    font-size:14px;
-}
-
-.stat strong{
-    display:block;
-    font-size:28px;
-    margin-top:8px;
-}
-
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px 20px;
-}
-
-.table-wrap{
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:850px;
-}
-
-th,
-td{
-    padding:12px;
-    border-bottom:1px solid #e5e7eb;
-    text-align:left;
-}
-
-th{
-    background:#f3f4f6;
-}
-
-.search{
-    margin-bottom:15px;
-}
-
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.badge{
-    display:inline-block;
-    padding:5px 9px;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:bold;
-}
-
-.badge-today{
-    background:#fee2e2;
-    color:#b91c1c;
-}
-
-.badge-upcoming{
-    background:#dcfce7;
-    color:#166534;
-}
-
-.badge-missed{
-    background:#e5e7eb;
-    color:#374151;
-}
-
-.message{
-    display:none;
-    padding:12px 15px;
-    border-radius:8px;
-    margin-bottom:15px;
-}
-
-.message.success{
-    display:block;
-    background:#dcfce7;
-    color:#166534;
-}
-
-.message.error{
-    display:block;
-    background:#fee2e2;
-    color:#991b1b;
-}
-
-.small{
-    font-size:13px;
-    color:#6b7280;
-}
-
-.login-box{
-    max-width:450px;
-    margin:50px auto;
-}
-
-.modal{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.55);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    z-index:9999;
-}
-
-.modal-box{
-    background:white;
-    width:100%;
-    max-width:500px;
-    padding:25px;
-    border-radius:14px;
-    max-height:90vh;
-    overflow-y:auto;
-}
-
-.pagination{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-    padding:18px 5px 5px;
-}
-
-.pagination-info{
-    font-weight:bold;
-    padding:8px 12px;
-}
-
-.page-number{
-    min-width:40px;
-}
-
-.loading{
-    text-align:center;
-    padding:20px;
-    color:#6b7280;
-}
-
-@media(max-width:800px){
-
-    .stats{
-        grid-template-columns:repeat(2,1fr);
     }
 
-    .form-grid{
-        grid-template-columns:1fr;
+
+    const btn =
+        document.querySelector(
+            "#loginScreen .btn-primary"
+        );
+
+
+    if(btn){
+
+        btn.disabled = true;
+
+        btn.innerText =
+            "Logging in...";
+
     }
 
-    .container{
-        padding:12px;
-    }
 
-    .card{
-        padding:15px;
+    try{
+
+        const {
+            data,
+            error
+        } =
+            await client.auth.signInWithPassword({
+
+                email: email,
+
+                password: password
+
+            });
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        if(
+            !data ||
+            !data.session
+        ){
+
+            throw new Error(
+                "Login successful nahi hua."
+            );
+
+        }
+
+
+        await showApp();
+
+
+    }catch(error){
+
+        console.error(
+            "LOGIN ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "loginMessage",
+            "Login failed: " +
+            error.message,
+            "error"
+        );
+
+
+    }finally{
+
+        if(btn){
+
+            btn.disabled = false;
+
+            btn.innerText =
+                "Login";
+
+        }
+
     }
 
 }
 
-@media(max-width:500px){
 
-    .stats{
-        grid-template-columns:1fr 1fr;
-        gap:8px;
+
+/* =====================================================
+   SIGNUP
+===================================================== */
+
+async function signup(){
+
+    const email =
+        document
+            .getElementById("signupEmail")
+            .value
+            .trim();
+
+
+    const password =
+        document
+            .getElementById("signupPassword")
+            .value;
+
+
+    if(!email || !password){
+
+        showMessage(
+            "signupMessage",
+            "Email and password required",
+            "error"
+        );
+
+        return;
+
     }
 
-    .stat{
-        padding:15px;
+
+    if(password.length < 6){
+
+        showMessage(
+            "signupMessage",
+            "Password must be at least 6 characters",
+            "error"
+        );
+
+        return;
+
     }
 
-    .stat strong{
-        font-size:24px;
-    }
 
-    header h1{
-        font-size:20px;
-    }
+    try{
 
-    button{
-        padding:9px 12px;
-        font-size:13px;
+        const {
+            data,
+            error
+        } =
+            await client.auth.signUp({
+
+                email: email,
+
+                password: password
+
+            });
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        if(data.session){
+
+            await showApp();
+
+        }else{
+
+            showMessage(
+                "signupMessage",
+                "Account created. Email confirmation required ho sakti hai.",
+                "success"
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "SIGNUP ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "signupMessage",
+            "Signup failed: " +
+            error.message,
+            "error"
+        );
+
     }
 
 }
 
-</style>
 
-</head>
 
+/* =====================================================
+   LOGOUT
+===================================================== */
 
-<body>
+async function logout(){
 
+    await client.auth.signOut();
 
-<!-- =========================
-     LOGIN SCREEN
-========================= -->
+    customers = [];
 
-<div id="loginScreen">
+    reminders = [];
 
-    <div class="login-box card">
+    showLogin();
 
-        <h2>Zad Plus GPS CRM</h2>
+}
 
-        <p class="small">
-            Login to continue
-        </p>
 
-        <div id="loginMessage"
-             class="message">
-        </div>
 
-        <label>
+/* =====================================================
+   SHOW APP
+===================================================== */
 
-            Email
+async function showApp(){
 
-            <input
-                type="email"
-                id="loginEmail"
-                placeholder="Enter email"
-                autocomplete="email"
-            >
+    document
+        .getElementById("loginScreen")
+        .classList.add("hidden");
 
-        </label>
 
+    document
+        .getElementById("signupScreen")
+        .classList.add("hidden");
 
-        <label>
 
-            Password
+    document
+        .getElementById("app")
+        .classList.remove("hidden");
 
-            <input
-                type="password"
-                id="loginPassword"
-                placeholder="Enter password"
-                autocomplete="current-password"
-            >
 
-        </label>
+    try{
 
+        const {
+            data,
+            error
+        } =
+            await client.auth.getUser();
 
-        <button
-            type="button"
-            class="btn-primary"
-            onclick="login()"
-        >
-            Login
-        </button>
 
+        if(error){
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showSignup()"
-        >
-            Create Account
-        </button>
+            throw error;
 
-    </div>
+        }
 
-</div>
 
+        const userEmail =
+            document.getElementById(
+                "userEmail"
+            );
 
 
-<!-- =========================
-     SIGNUP SCREEN
-========================= -->
+        if(userEmail){
 
-<div id="signupScreen"
-     class="hidden">
+            userEmail.innerText =
+                data.user?.email || "";
 
-    <div class="login-box card">
+        }
 
-        <h2>Create CRM Account</h2>
 
-        <div id="signupMessage"
-             class="message">
-        </div>
+        await loadAll();
 
 
-        <label>
+    }catch(error){
 
-            Email
+        console.error(
+            "APP LOAD ERROR:",
+            error
+        );
 
-            <input
-                type="email"
-                id="signupEmail"
-                placeholder="Enter email"
-                autocomplete="email"
-            >
 
-        </label>
+        showMessage(
+            "mainMessage",
+            "Dashboard load error: " +
+            error.message,
+            "error"
+        );
 
+    }
 
-        <label>
+}
 
-            Password
 
-            <input
-                type="password"
-                id="signupPassword"
-                placeholder="Minimum 6 characters"
-                autocomplete="new-password"
-            >
 
-        </label>
+/* =====================================================
+   LOAD ALL
+===================================================== */
 
+async function loadAll(){
 
-        <button
-            type="button"
-            class="btn-success"
-            onclick="signup()"
-        >
-            Create Account
-        </button>
+    try{
 
+        /*
+           Customers + reminders parallel load.
+           Isse loading thodi fast hogi.
+        */
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showLogin()"
-        >
-            Back to Login
-        </button>
+        await Promise.all([
 
-    </div>
+            loadCustomers(),
 
-</div>
+            loadReminders()
 
+        ]);
 
 
-<!-- =========================
-     MAIN APP
-========================= -->
+        updateDashboard();
 
-<div id="app"
-     class="hidden">
+        renderCustomers();
 
+        renderReminders();
 
-<header>
 
-    <h1>Zad Plus GPS CRM</h1>
+    }catch(error){
 
-    <p>
-        GPS Customer Management System
-    </p>
+        console.error(
+            "LOAD ALL ERROR:",
+            error
+        );
 
-</header>
 
+        showMessage(
+            "mainMessage",
+            "Data load error: " +
+            error.message,
+            "error"
+        );
 
+    }
 
-<div class="container">
+}
 
 
-<!-- =========================
-     TOP BAR
-========================= -->
 
-<div class="card">
+/* =====================================================
+   LOAD CUSTOMERS
+===================================================== */
 
-    <div class="topbar">
+/*
+   Supabase normal request maximum 1000 rows de sakti hai.
 
-        <div>
+   Isliye 1000-1000 ke batches mein data load karenge.
 
-            <strong>
-                Logged in:
-            </strong>
+   Example:
 
-            <span id="userEmail"></span>
+   0-999
+   1000-1999
+   2000-2999
+   3000-3999
+   4000-4999
 
-        </div>
+   Total = 5000 customers possible.
+*/
 
+async function loadCustomers(){
 
-        <div>
+    customers = [];
 
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="showAddCustomer()"
-            >
-                + Add Customer
-            </button>
 
+    const batchSize = 1000;
 
-            <button
-                type="button"
-                class="btn-dark"
-                onclick="logout()"
-            >
-                Logout
-            </button>
 
-        </div>
+    for(
+        let from = 0;
+        from < MAX_CUSTOMERS;
+        from += batchSize
+    ){
 
-    </div>
+        const to =
+            Math.min(
+                from + batchSize - 1,
+                MAX_CUSTOMERS - 1
+            );
 
-</div>
 
+        const {
+            data,
+            error
+        } =
+            await client
+                .from("customers")
+                .select(`
+                    id,
+                    name,
+                    mobile,
+                    vehicle_no,
+                    expiry_date,
+                    created_at,
+                    updated_at
+                `)
+                .order(
+                    "created_at",
+                    {
+                        ascending:false
+                    }
+                )
+                .order(
+                    "id",
+                    {
+                        ascending:false
+                    }
+                )
+                .range(
+                    from,
+                    to
+                );
 
 
-<!-- =========================
-     MAIN MESSAGE
-========================= -->
+        if(error){
 
-<div id="mainMessage"
-     class="message">
-</div>
+            throw error;
 
+        }
 
 
-<!-- =========================
-     DASHBOARD STATS
-========================= -->
+        if(data && data.length){
 
-<div class="stats">
+            customers.push(
+                ...data
+            );
 
+        }
 
-    <div class="stat">
 
-        <h3>
-            Total Customers
-        </h3>
+        /*
+           Agar batch 1000 se kam hai,
+           iska matlab records khatam ho gaye.
+        */
 
-        <strong id="totalCustomers">
-            0
-        </strong>
+        if(
+            !data ||
+            data.length < batchSize
+        ){
 
-    </div>
+            break;
 
+        }
 
-    <div class="stat">
+    }
 
-        <h3>
-            Due Today
-        </h3>
 
-        <strong id="dueToday">
-            0
-        </strong>
+    /*
+       Safety:
+       5000 se zyada browser memory mein nahi.
+    */
 
-    </div>
+    if(
+        customers.length >
+        MAX_CUSTOMERS
+    ){
 
+        customers =
+            customers.slice(
+                0,
+                MAX_CUSTOMERS
+            );
 
-    <div class="stat">
+    }
 
-        <h3>
-            Next 7 Days
-        </h3>
 
-        <strong id="next7Days">
-            0
-        </strong>
+    const total =
+        document.getElementById(
+            "totalCustomers"
+        );
 
-    </div>
 
+    if(total){
 
-    <div class="stat">
+        total.innerText =
+            customers.length;
 
-        <h3>
-            Expired
-        </h3>
+    }
 
-        <strong id="expiredCustomers">
-            0
-        </strong>
+}
 
-    </div>
 
 
-</div>
+/* =====================================================
+   LOAD REMINDERS
+===================================================== */
 
+async function loadReminders(){
 
+    reminders = [];
 
-<!-- =========================
-     ADD CUSTOMER FORM
-========================= -->
 
-<div
-    id="customerFormCard"
-    class="card hidden"
->
+    const batchSize = 500;
 
-    <h2 id="formTitle">
-        Add Customer
-    </h2>
 
+    for(
+        let from = 0;
+        ;
+        from += batchSize
+    ){
 
-    <div class="form-grid">
+        const {
+            data,
+            error
+        } =
+            await client
+                .from("reminders")
+                .select(`
+                    *,
+                    customers(
+                        name,
+                        mobile,
+                        vehicle_no,
+                        expiry_date
+                    )
+                `)
+                .order(
+                    "reminder_date",
+                    {
+                        ascending:true
+                    }
+                )
+                .order(
+                    "id",
+                    {
+                        ascending:true
+                    }
+                )
+                .range(
+                    from,
+                    from + batchSize - 1
+                );
 
 
-        <label>
+        if(error){
 
-            Name *
+            console.error(
+                "REMINDER LOAD ERROR:",
+                error
+            );
 
-            <input
-                type="text"
-                id="customerName"
-                placeholder="Customer Name"
-                autocomplete="name"
-            >
+            reminders = [];
 
-        </label>
+            break;
 
+        }
 
-        <label>
 
-            Mobile *
+        if(data && data.length){
 
-            <input
-                type="tel"
-                id="customerMobile"
-                placeholder="10 digit mobile number"
-                inputmode="numeric"
-                autocomplete="tel"
-            >
+            reminders.push(
+                ...data
+            );
 
-        </label>
+        }
 
 
-        <label>
+        if(
+            !data ||
+            data.length < batchSize
+        ){
 
-            Vehicle Number
+            break;
 
-            <input
-                type="text"
-                id="vehicleNumber"
-                placeholder="HR12AB1234"
-                autocomplete="off"
-            >
+        }
 
-        </label>
 
+        /*
+           Reminder table ke liye
+           unnecessary huge loading avoid.
+        */
 
-        <label>
+        if(from >= 5000){
 
-            GPS Expiry Date *
+            break;
 
-            <input
-                type="date"
-                id="expiryDate"
-            >
+        }
 
-        </label>
+    }
 
+}
 
-    </div>
 
 
-    <button
-        type="button"
-        class="btn-success"
-        onclick="saveCustomer()"
-    >
-        Save Customer
-    </button>
+/* =====================================================
+   ADD CUSTOMER FORM
+===================================================== */
 
+function showAddCustomer(){
 
-    <button
-        type="button"
-        class="btn-gray"
-        onclick="hideCustomerForm()"
-    >
-        Cancel
-    </button>
+    document
+        .getElementById(
+            "customerFormCard"
+        )
+        .classList.remove("hidden");
 
 
-    <input
-        type="hidden"
-        id="editCustomerId"
-    >
+    document
+        .getElementById(
+            "formTitle"
+        )
+        .innerText =
+            "Add Customer";
 
-</div>
 
+    document
+        .getElementById(
+            "editCustomerId"
+        )
+        .value = "";
 
 
-<!-- =========================
-     CUSTOMER LIST
-========================= -->
+    document
+        .getElementById(
+            "customerName"
+        )
+        .value = "";
 
-<div class="card">
 
+    document
+        .getElementById(
+            "customerMobile"
+        )
+        .value = "";
 
-    <div class="topbar">
 
-        <h2>
-            Customers
-        </h2>
+    document
+        .getElementById(
+            "vehicleNumber"
+        )
+        .value = "";
 
 
-        <div>
+    document
+        .getElementById(
+            "expiryDate"
+        )
+        .value = "";
 
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="showAllCustomers()"
-            >
-                All Customers
-            </button>
 
+    window.scrollTo({
 
-            <button
-                type="button"
-                class="btn-warning"
-                onclick="showExpiringSoon()"
-            >
-                Expiring Soon
-            </button>
+        top:
+            document
+                .getElementById(
+                    "customerFormCard"
+                )
+                .offsetTop - 20,
 
+        behavior:"smooth"
 
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="downloadTemplate()"
-            >
-                Download Template
-            </button>
+    });
 
+}
 
-            <button
-                type="button"
-                class="btn-success"
-                onclick="document.getElementById('csvFile').click()"
-            >
-                Import Excel / CSV
-            </button>
 
 
-            <input
-                type="file"
-                id="csvFile"
-                accept=".csv,.xlsx,.xls"
-                style="display:none"
-                onchange="importFile(event)"
-            >
+function hideCustomerForm(){
 
-        </div>
+    document
+        .getElementById(
+            "customerFormCard"
+        )
+        .classList.add("hidden");
 
-    </div>
+}
 
 
 
-    <input
-        class="search"
-        type="text"
-        id="searchBox"
-        placeholder="Search Name / Mobile / Vehicle Number"
-        oninput="resetCustomerPage()"
-    >
+/* =====================================================
+   SAVE CUSTOMER
+===================================================== */
 
+async function saveCustomer(){
 
+    const name =
+        document
+            .getElementById(
+                "customerName"
+            )
+            .value
+            .trim();
 
-    <div class="table-wrap">
 
-        <table>
+    const mobile =
+        document
+            .getElementById(
+                "customerMobile"
+            )
+            .value
+            .trim();
 
-            <thead>
 
-                <tr>
+    const vehicle =
+        document
+            .getElementById(
+                "vehicleNumber"
+            )
+            .value
+            .trim();
 
-                    <th>
-                        Name
-                    </th>
 
-                    <th>
-                        Mobile
-                    </th>
+    const expiry =
+        document
+            .getElementById(
+                "expiryDate"
+            )
+            .value;
 
-                    <th>
-                        Vehicle
-                    </th>
 
-                    <th>
-                        Expiry
-                    </th>
+    const editId =
+        document
+            .getElementById(
+                "editCustomerId"
+            )
+            .value;
 
-                    <th>
-                        Status
-                    </th>
 
-                    <th>
-                        Actions
-                    </th>
+    if(
+        !name ||
+        !mobile ||
+        !expiry
+    ){
 
-                </tr>
+        showMessage(
+            "mainMessage",
+            "Name, Mobile and Expiry Date required",
+            "error"
+        );
 
-            </thead>
+        return;
 
+    }
 
-            <tbody id="customerTable">
 
-                <tr>
-                    <td colspan="6"
-                        class="loading">
-                        Loading customers...
-                    </td>
-                </tr>
+    try{
 
-            </tbody>
+        let result;
 
-        </table>
 
-    </div>
+        if(editId){
 
+            result =
+                await client
+                    .from("customers")
+                    .update({
 
-    <!--
-       Pagination is created by JavaScript.
-       30 customers per page.
-    -->
+                        name:name,
 
-</div>
+                        mobile:mobile,
 
+                        vehicle_no:
+                            vehicle || null,
 
+                        expiry_date:
+                            expiry,
 
-<!-- =========================
-     REMINDER CENTER
-========================= -->
+                        updated_at:
+                            new Date()
+                                .toISOString()
 
-<div class="card">
+                    })
+                    .eq(
+                        "id",
+                        editId
+                    );
 
 
-    <div class="topbar">
+        }else{
 
-        <h2>
-            Reminder Center
-        </h2>
+            result =
+                await client
+                    .from("customers")
+                    .insert({
 
+                        name:name,
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="loadAll()"
-        >
-            Refresh
-        </button>
+                        mobile:mobile,
 
-    </div>
+                        vehicle_no:
+                            vehicle || null,
 
+                        expiry_date:
+                            expiry
 
-    <div class="table-wrap">
+                    });
 
-        <table>
+        }
 
-            <thead>
 
-                <tr>
+        if(result.error){
 
-                    <th>
-                        Customer
-                    </th>
+            throw result.error;
 
-                    <th>
-                        Mobile
-                    </th>
+        }
 
-                    <th>
-                        Vehicle
-                    </th>
 
-                    <th>
-                        Reminder
-                    </th>
+        hideCustomerForm();
 
-                    <th>
-                        Date
-                    </th>
 
-                    <th>
-                        Status
-                    </th>
+        showMessage(
+            "mainMessage",
+            editId
+                ? "Customer updated"
+                : "Customer added",
+            "success"
+        );
 
-                    <th>
-                        Actions
-                    </th>
 
-                </tr>
+        /*
+           New customer add hone par
+           first page par wapas.
+        */
 
-            </thead>
+        customerPage = 1;
 
+        customerFilter = "all";
 
-            <tbody id="reminderTable">
 
-                <tr>
-                    <td colspan="7"
-                        class="loading">
-                        Loading reminders...
-                    </td>
-                </tr>
+        await loadAll();
 
-            </tbody>
 
-        </table>
+    }catch(error){
 
-    </div>
+        console.error(
+            "SAVE CUSTOMER ERROR:",
+            error
+        );
 
-</div>
 
+        showMessage(
+            "mainMessage",
+            "Save failed: " +
+            error.message,
+            "error"
+        );
 
+    }
 
-</div>
+}
 
-</div>
 
 
+/* =====================================================
+   EDIT CUSTOMER
+===================================================== */
 
-<!-- =========================
-     EDIT CUSTOMER MODAL
-========================= -->
+function openEdit(id){
 
-<div
-    id="editModal"
-    class="modal hidden"
->
+    const customer =
+        customers.find(
+            c => c.id === id
+        );
 
 
-    <div class="modal-box">
+    if(!customer){
 
+        return;
 
-        <h2>
-            Edit Customer
-        </h2>
+    }
 
 
-        <label>
+    currentEditId = id;
 
-            Name
 
-            <input
-                type="text"
-                id="editName"
-            >
+    document
+        .getElementById(
+            "editName"
+        )
+        .value =
+            customer.name || "";
 
-        </label>
 
+    document
+        .getElementById(
+            "editMobile"
+        )
+        .value =
+            customer.mobile || "";
 
-        <label>
 
-            Mobile
+    document
+        .getElementById(
+            "editVehicle"
+        )
+        .value =
+            customer.vehicle_no || "";
 
-            <input
-                type="tel"
-                id="editMobile"
-            >
 
-        </label>
+    document
+        .getElementById(
+            "editExpiry"
+        )
+        .value =
+            customer.expiry_date || "";
 
 
-        <label>
+    document
+        .getElementById(
+            "editModal"
+        )
+        .classList.remove(
+            "hidden"
+        );
 
-            Vehicle Number
+}
 
-            <input
-                type="text"
-                id="editVehicle"
-            >
 
-        </label>
 
+function closeEdit(){
 
-        <label>
+    currentEditId = null;
 
-            GPS Expiry Date
 
-            <input
-                type="date"
-                id="editExpiry"
-            >
+    document
+        .getElementById(
+            "editModal"
+        )
+        .classList.add(
+            "hidden"
+        );
 
-        </label>
+}
 
 
-        <button
-            type="button"
-            class="btn-success"
-            onclick="updateCustomer()"
-        >
-            Update
-        </button>
 
+/* =====================================================
+   UPDATE CUSTOMER
+===================================================== */
 
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="closeEdit()"
-        >
-            Cancel
-        </button>
+async function updateCustomer(){
 
+    if(!currentEditId){
 
-    </div>
+        return;
 
-</div>
+    }
 
 
+    const name =
+        document
+            .getElementById(
+                "editName"
+            )
+            .value
+            .trim();
 
-<!-- =========================
-     PART 2 STARTS HERE
-========================= -->
 
-<script>
+    const mobile =
+        document
+            .getElementById(
+                "editMobile"
+            )
+            .value
+            .trim();
+
+
+    const vehicle =
+        document
+            .getElementById(
+                "editVehicle"
+            )
+            .value
+            .trim();
+
+
+    const expiry =
+        document
+            .getElementById(
+                "editExpiry"
+            )
+            .value;
+
+
+    if(
+        !name ||
+        !mobile ||
+        !expiry
+    ){
+
+        alert(
+            "Name, Mobile and Expiry Date are required."
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const {
+            error
+        } =
+            await client
+                .from("customers")
+                .update({
+
+                    name:name,
+
+                    mobile:mobile,
+
+                    vehicle_no:
+                        vehicle || null,
+
+                    expiry_date:
+                        expiry,
+
+                    updated_at:
+                        new Date()
+                            .toISOString()
+
+                })
+                .eq(
+                    "id",
+                    currentEditId
+                );
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        closeEdit();
+
+
+        showMessage(
+            "mainMessage",
+            "Customer updated",
+            "success"
+        );
+
+
+        await loadAll();
+
+
+    }catch(error){
+
+        console.error(
+            "UPDATE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "mainMessage",
+            "Update failed: " +
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+
+/* =====================================================
+   DELETE CUSTOMER
+===================================================== */
+
+async function deleteCustomer(id){
+
+    if(
+        !confirm(
+            "Delete this customer?"
+        )
+    ){
+
+        return;
+
+    }
+
+
+    try{
+
+        const {
+            error
+        } =
+            await client
+                .from("customers")
+                .delete()
+                .eq(
+                    "id",
+                    id
+                );
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        showMessage(
+            "mainMessage",
+            "Customer deleted",
+            "success"
+        );
+
+
+        /*
+           Agar last customer delete ho
+           to page automatically adjust.
+        */
+
+        await loadAll();
+
+
+    }catch(error){
+
+        console.error(
+            "DELETE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "mainMessage",
+            "Delete failed: " +
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+
+/* =====================================================
+   CUSTOMER FILTER
+===================================================== */
+
+function resetCustomerPage(){
+
+    customerPage = 1;
+
+    renderCustomers();
+
+}
+
+
+
+function showAllCustomers(){
+
+    customerFilter =
+        "all";
+
+
+    customerPage = 1;
+
+
+    const title =
+        document
+            .querySelector(
+                "#customerTable"
+            )
+            ?.closest(".card")
+            ?.querySelector("h2");
+
+
+    if(title){
+
+        title.innerText =
+            "Customers";
+
+    }
+
+
+    renderCustomers();
+
+}
+
+
+
+function showExpiringSoon(){
+
+    customerFilter =
+        "expiring";
+
+
+    customerPage = 1;
+
+
+    const title =
+        document
+            .querySelector(
+                "#customerTable"
+            )
+            ?.closest(".card")
+            ?.querySelector("h2");
+
+
+    if(title){
+
+        title.innerText =
+            "Expiring Soon (Next 7 Days)";
+
+    }
+
+
+    renderCustomers();
+
+
+    const card =
+        document
+            .getElementById(
+                "customerTable"
+            )
+            ?.closest(".card");
+
+
+    if(card){
+
+        card.scrollIntoView({
+
+            behavior:"smooth",
+
+            block:"start"
+
+        });
+
+    }
+
+}
+
+
+
+/* =====================================================
+   RENDER CUSTOMERS
+===================================================== */
+
+function renderCustomers(){
+
+    const tbody =
+        document.getElementById(
+            "customerTable"
+        );
+
+
+    if(!tbody){
+
+        return;
+
+    }
+
+
+    const search =
+        (
+            document
+                .getElementById(
+                    "searchBox"
+                )
+                ?.value ||
+            ""
+        )
+        .toLowerCase()
+        .trim();
+
+
+    const today =
+        startOfDay(
+            new Date()
+        );
+
+
+    /*
+       FILTER CUSTOMERS
+    */
+
+    const filtered =
+        customers.filter(
+            customer => {
+
+                const expiry =
+                    parseLocalDate(
+                        customer.expiry_date
+                    );
+
+
+                /*
+                   Expiring Soon:
+
+                   Today se next 7 days.
+
+                   Ye 7 days same rahega.
+                */
+
+                if(
+                    customerFilter ===
+                    "expiring"
+                ){
+
+                    if(
+                        !expiry ||
+                        isNaN(expiry)
+                    ){
+
+                        return false;
+
+                    }
+
+
+                    const diff =
+                        Math.round(
+
+                            (
+                                startOfDay(
+                                    expiry
+                                ) -
+                                today
+                            )
+                            /
+                            86400000
+
+                        );
+
+
+                    if(
+                        diff < 0 ||
+                        diff > 7
+                    ){
+
+                        return false;
+
+                    }
+
+                }
+
+
+                /*
+                   SEARCH
+                */
+
+                if(!search){
+
+                    return true;
+
+                }
+
+
+                return [
+
+                    customer.name,
+
+                    customer.mobile,
+
+                    customer.vehicle_no
+
+                ].some(
+
+                    value =>
+
+                        String(
+                            value || ""
+                        )
+                        .toLowerCase()
+                        .includes(
+                            search
+                        )
+
+                );
+
+            }
+        );
+
+
+
+    /* =================================================
+       PAGINATION
+    ================================================= */
+
+    const totalCustomers =
+        filtered.length;
+
+
+    const totalPages =
+        Math.max(
+
+            1,
+
+            Math.ceil(
+                totalCustomers /
+                CUSTOMER_PAGE_SIZE
+            )
+
+        );
+
+
+    if(
+        customerPage >
+        totalPages
+    ){
+
+        customerPage =
+            totalPages;
+
+    }
+
+
+    if(
+        customerPage < 1
+    ){
+
+        customerPage = 1;
+
+    }
+
+
+    const start =
+        (
+            customerPage - 1
+        )
+        *
+        CUSTOMER_PAGE_SIZE;
+
+
+    const end =
+        start +
+        CUSTOMER_PAGE_SIZE;
+
+
+    const pageCustomers =
+        filtered.slice(
+            start,
+            end
+        );
+
+
+
+    /* =================================================
+       TABLE
+    ================================================= */
+
+    if(
+        !pageCustomers.length
+    ){
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="6"
+                    class="loading"
+                >
+                    No customers found.
+                </td>
+
+            </tr>
+
+        `;
+
+    }else{
+
+        tbody.innerHTML =
+
+            pageCustomers
+                .map(
+                    customer => {
+
+                        const status =
+                            customerStatus(
+                                customer.expiry_date
+                            );
+
+
+                        return `
+
+                            <tr>
+
+                                <td>
+                                    ${escapeHtml(
+                                        customer.name
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${escapeHtml(
+                                        customer.mobile
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${escapeHtml(
+                                        customer.vehicle_no ||
+                                        "-"
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${formatDate(
+                                        customer.expiry_date
+                                    )}
+                                </td>
+
+
+                                <td>
+
+                                    <span
+                                        class="badge ${status.className}"
+                                    >
+                                        ${status.label}
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <button
+                                        type="button"
+                                        class="btn-primary"
+                                        onclick="callCustomer('${escapeJs(customer.mobile)}')"
+                                    >
+                                        Call
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="btn-success"
+                                        onclick="whatsappCustomer(
+                                            '${escapeJs(customer.name)}',
+                                            '${escapeJs(customer.mobile)}',
+                                            '${escapeJs(customer.expiry_date)}'
+                                        )"
+                                    >
+                                        WhatsApp
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="btn-warning"
+                                        onclick="openEdit('${customer.id}')"
+                                    >
+                                        Edit
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="btn-danger"
+                                        onclick="deleteCustomer('${customer.id}')"
+                                    >
+                                        Delete
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        `;
+
+                    }
+                )
+                .join("");
+
+    }
+
+
+
+    /*
+       Pagination UI
+    */
+
+    renderCustomerPagination(
+        totalCustomers,
+        totalPages
+    );
+
+}
+
+
+
+/* =====================================================
+   CUSTOMER PAGINATION
+===================================================== */
+
+function renderCustomerPagination(
+    totalCustomers,
+    totalPages
+){
+
+    /*
+       Purana pagination remove.
+    */
+
+    const old =
+        document.getElementById(
+            "customerPagination"
+        );
+
+
+    if(old){
+
+        old.remove();
+
+    }
+
+
+    const tbody =
+        document.getElementById(
+            "customerTable"
+        );
+
+
+    if(!tbody){
+
+        return;
+
+    }
+
+
+    const tableWrap =
+        tbody.closest(
+            ".table-wrap"
+        );
+
+
+    if(!tableWrap){
+
+        return;
+
+    }
+
+
+    const pagination =
+        document.createElement(
+            "div"
+        );
+
+
+    pagination.id =
+        "customerPagination";
+
+
+    pagination.className =
+        "pagination";
+
+
+
+    /*
+       Previous
+    */
+
+    const previous =
+        document.createElement(
+            "button"
+        );
+
+
+    previous.type =
+        "button";
+
+
+    previous.className =
+        "btn-gray";
+
+
+    previous.innerText =
+        "Previous";
+
+
+    previous.disabled =
+        customerPage <= 1;
+
+
+    previous.onclick =
+        function(){
+
+            if(
+                customerPage > 1
+            ){
+
+                customerPage--;
+
+                renderCustomers();
+
+                scrollCustomerTable();
+
+            }
+
+        };
+
+
+    pagination.appendChild(
+        previous
+    );
+
+
+
+    /*
+       Page numbers
+    */
+
+    const maxButtons = 7;
+
+
+    let startPage =
+        Math.max(
+            1,
+            customerPage -
+            Math.floor(
+                maxButtons / 2
+            )
+        );
+
+
+    let endPage =
+        Math.min(
+            totalPages,
+            startPage +
+            maxButtons -
+            1
+        );
+
+
+    if(
+        endPage -
+        startPage +
+        1
+        <
+        maxButtons
+    ){
+
+        startPage =
+            Math.max(
+                1,
+                endPage -
+                maxButtons +
+                1
+            );
+
+    }
+
+
+    /*
+       First page
+    */
+
+    if(startPage > 1){
+
+        pagination.appendChild(
+            createPageButton(
+                1
+            )
+        );
+
+
+        if(startPage > 2){
+
+            const dots =
+                document.createElement(
+                    "span"
+                );
+
+            dots.innerText =
+                "...";
+
+            dots.className =
+                "pagination-info";
+
+            pagination.appendChild(
+                dots
+            );
+
+        }
+
+    }
+
+
+    for(
+        let page = startPage;
+        page <= endPage;
+        page++
+    ){
+
+        pagination.appendChild(
+
+            createPageButton(
+                page
+            )
+
+        );
+
+    }
+
+
+    /*
+       Last page
+    */
+
+    if(
+        endPage <
+        totalPages
+    ){
+
+        if(
+            endPage <
+            totalPages - 1
+        ){
+
+            const dots =
+                document.createElement(
+                    "span"
+                );
+
+            dots.innerText =
+                "...";
+
+            dots.className =
+                "pagination-info";
+
+            pagination.appendChild(
+                dots
+            );
+
+        }
+
+
+        pagination.appendChild(
+            createPageButton(
+                totalPages
+            )
+        );
+
+    }
+
+
+
+    /*
+       Next
+    */
+
+    const next =
+        document.createElement(
+            "button"
+        );
+
+
+    next.type =
+        "button";
+
+
+    next.className =
+        "btn-gray";
+
+
+    next.innerText =
+        "Next";
+
+
+    next.disabled =
+        customerPage >=
+        totalPages;
+
+
+    next.onclick =
+        function(){
+
+            if(
+                customerPage <
+                totalPages
+            ){
+
+                customerPage++;
+
+                renderCustomers();
+
+                scrollCustomerTable();
+
+            }
+
+        };
+
+
+    pagination.appendChild(
+        next
+    );
+
+
+
+    /*
+       Information
+    */
+
+    const info =
+        document.createElement(
+            "span"
+        );
+
+
+    info.className =
+        "pagination-info";
+
+
+    const from =
+        totalCustomers === 0
+            ? 0
+            :
+            (
+                (
+                    customerPage - 1
+                )
+                *
+                CUSTOMER_PAGE_SIZE
+            ) + 1;
+
+
+    const to =
+        Math.min(
+            customerPage *
+            CUSTOMER_PAGE_SIZE,
+            totalCustomers
+        );
+
+
+    info.innerText =
+        `${from}-${to} of ${totalCustomers}`;
+
+
+    pagination.appendChild(
+        info
+    );
+
+
+    tableWrap.appendChild(
+        pagination
+    );
+
+}
+
+
+
+/* =====================================================
+   CREATE PAGE BUTTON
+===================================================== */
+
+function createPageButton(
+    page
+){
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.type =
+        "button";
+
+
+    button.className =
+        "btn-gray page-number";
+
+
+    button.innerText =
+        page;
+
+
+    if(
+        page === customerPage
+    ){
+
+        button.className =
+            "btn-primary page-number";
+
+    }
+
+
+    button.onclick =
+        function(){
+
+            customerPage =
+                page;
+
+            renderCustomers();
+
+            scrollCustomerTable();
+
+        };
+
+
+    return button;
+
+}
+
+
+
+/* =====================================================
+   SCROLL CUSTOMER TABLE
+===================================================== */
+
+function scrollCustomerTable(){
+
+    const table =
+        document.getElementById(
+            "customerTable"
+        );
+
+
+    if(
+        table &&
+        table.closest(".card")
+    ){
+
+        table
+            .closest(".card")
+            .scrollIntoView({
+
+                behavior:"smooth",
+
+                block:"start"
+
+            });
+
+    }
+
+}
+
+
+
+/* =====================================================
+   CUSTOMER STATUS
+===================================================== */
+
+function customerStatus(
+    expiry
+){
+
+    const date =
+        parseLocalDate(
+            expiry
+        );
+
+
+    const today =
+        startOfDay(
+            new Date()
+        );
+
+
+    if(
+        !date ||
+        isNaN(date)
+    ){
+
+        return {
+
+            label:"-",
+
+            className:
+                "badge-missed"
+
+        };
+
+    }
+
+
+    const diff =
+        Math.round(
+
+            (
+                startOfDay(
+                    date
+                ) -
+                today
+            )
+            /
+            86400000
+
+        );
+
+
+    if(diff < 0){
+
+        return {
+
+            label:"Expired",
+
+            className:
+                "badge-missed"
+
+        };
+
+    }
+
+
+    if(diff === 0){
+
+        return {
+
+            label:"Today",
+
+            className:
+                "badge-today"
+
+        };
+
+    }
+
+
+    return {
+
+        label:"Active",
+
+        className:
+            "badge-upcoming"
+
+    };
+
+}
+
+
+
+/* =====================================================
+   DASHBOARD
+===================================================== */
+
+function updateDashboard(){
+
+    const today =
+        startOfDay(
+            new Date()
+        );
+
+
+    let dueToday = 0;
+
+    let next7 = 0;
+
+    let expired = 0;
+
+
+    customers.forEach(
+
+        customer => {
+
+            const date =
+                parseLocalDate(
+                    customer.expiry_date
+                );
+
+
+            if(
+                !date ||
+                isNaN(date)
+            ){
+
+                return;
+
+            }
+
+
+            const diff =
+                Math.round(
+
+                    (
+                        startOfDay(
+                            date
+                        ) -
+                        today
+                    )
+                    /
+                    86400000
+
+                );
+
+
+            if(diff < 0){
+
+                expired++;
+
+            }
+            else if(
+                diff === 0
+            ){
+
+                dueToday++;
+
+            }
+            else if(
+                diff >= 1 &&
+                diff <= 7
+            ){
+
+                next7++;
+
+            }
+
+        }
+
+    );
+
+
+    const total =
+        document.getElementById(
+            "totalCustomers"
+        );
+
+
+    const due =
+        document.getElementById(
+            "dueToday"
+        );
+
+
+    const seven =
+        document.getElementById(
+            "next7Days"
+        );
+
+
+    const expiredElement =
+        document.getElementById(
+            "expiredCustomers"
+        );
+
+
+    if(total){
+
+        total.innerText =
+            customers.length;
+
+    }
+
+
+    if(due){
+
+        due.innerText =
+            dueToday;
+
+    }
+
+
+    if(seven){
+
+        seven.innerText =
+            next7;
+
+    }
+
+
+    if(expiredElement){
+
+        expiredElement.innerText =
+            expired;
+
+    }
+
+}
+
+
+
+/* =====================================================
+   REMINDER CENTER
+===================================================== */
+
+function renderReminders(){
+
+    const tbody =
+        document.getElementById(
+            "reminderTable"
+        );
+
+
+    if(!tbody){
+
+        return;
+
+    }
+
+
+    const today =
+        toISODate(
+            startOfDay(
+                new Date()
+            )
+        );
+
+
+    const list =
+        reminders
+            .filter(
+                reminder =>
+                    reminder.status !==
+                    "done"
+            )
+            .filter(
+                reminder =>
+                    reminder.reminder_date <=
+                    today
+            );
+
+
+
+    if(!list.length){
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="loading"
+                >
+                    No pending reminders.
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+
+
+    tbody.innerHTML =
+
+        list
+            .map(
+                reminder => {
+
+                    const customer =
+                        reminder.customers ||
+                        {};
+
+
+                    return `
+
+                        <tr>
+
+                            <td>
+                                ${escapeHtml(
+                                    customer.name ||
+                                    "-"
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${escapeHtml(
+                                    customer.mobile ||
+                                    "-"
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${escapeHtml(
+                                    customer.vehicle_no ||
+                                    "-"
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${escapeHtml(
+                                    formatReminderType(
+                                        reminder.reminder_type
+                                    )
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${formatDate(
+                                    reminder.reminder_date
+                                )}
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="badge badge-today"
+                                >
+                                    ${escapeHtml(
+                                        reminder.status ||
+                                        "pending"
+                                    )}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <button
+                                    type="button"
+                                    class="btn-primary"
+                                    onclick="callCustomer('${escapeJs(customer.mobile || "")}')"
+                                >
+                                    Call
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="btn-success"
+                                    onclick="whatsappCustomer(
+                                        '${escapeJs(customer.name || "")}',
+                                        '${escapeJs(customer.mobile || "")}',
+                                        '${escapeJs(customer.expiry_date || "")}'
+                                    )"
+                                >
+                                    WhatsApp
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="btn-warning"
+                                    onclick="markReminderDone('${reminder.id}')"
+                                >
+                                    Mark Done
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+
+/* =====================================================
+   MARK REMINDER DONE
+===================================================== */
+
+async function markReminderDone(
+    id
+){
+
+    try{
+
+        const {
+            error
+        } =
+            await client
+                .from("reminders")
+                .update({
+
+                    status:"done",
+
+                    sent_at:
+                        new Date()
+                            .toISOString()
+
+                })
+                .eq(
+                    "id",
+                    id
+                );
+
+
+        if(error){
+
+            throw error;
+
+        }
+
+
+        showMessage(
+            "mainMessage",
+            "Reminder marked as done",
+            "success"
+        );
+
+
+        await loadAll();
+
+
+    }catch(error){
+
+        console.error(
+            "REMINDER UPDATE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "mainMessage",
+            "Could not update reminder: " +
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+
+/* =====================================================
+   CALL CUSTOMER
+===================================================== */
+
+function callCustomer(
+    mobile
+){
+
+    const number =
+        cleanMobile(
+            mobile
+        );
+
+
+    if(!number){
+
+        return;
+
+    }
+
+
+    window.location.href =
+        "tel:+" +
+        number;
+
+}
+
+
+
+/* =====================================================
+   MANUAL WHATSAPP
+===================================================== */
+
+function whatsappCustomer(
+    name,
+    mobile,
+    expiry
+){
+
+    const number =
+        cleanMobile(
+            mobile
+        );
+
+
+    if(!number){
+
+        return;
+
+    }
+
+
+    const message =
+        `Namaste ${name} Ji, aapke GPS Tracker ka plan ${formatDate(expiry)} ko expire ho raha hai. Renewal ke liye sampark karein: 9097979200`;
+
+
+    window.open(
+
+        "https://wa.me/" +
+        number +
+        "?text=" +
+        encodeURIComponent(
+            message
+        ),
+
+        "_blank"
+
+    );
+
+}
+
+
+
+/* =====================================================
+   EXCEL TEMPLATE
+===================================================== */
+
+function downloadTemplate(){
+
+    const rows = [
+
+        {
+
+            Name:
+                "Example Customer",
+
+            Mobile:
+                "9876543210",
+
+            Vehicle_Number:
+                "HR12AB1234",
+
+            Expiry_Date:
+                "2026-12-31"
+
+        }
+
+    ];
+
+
+    const ws =
+        XLSX.utils.json_to_sheet(
+            rows
+        );
+
+
+    const wb =
+        XLSX.utils.book_new();
+
+
+    XLSX.utils.book_append_sheet(
+        wb,
+        ws,
+        "Customers"
+    );
+
+
+    XLSX.writeFile(
+        wb,
+        "Zad_Plus_GPS_CRM_Template.xlsx"
+    );
+
+}
+
+
+
+/* =====================================================
+   IMPORT EXCEL / CSV
+===================================================== */
+
+async function importFile(
+    event
+){
+
+    const file =
+        event.target.files[0];
+
+
+    if(!file){
+
+        return;
+
+    }
+
+
+    try{
+
+        const buffer =
+            await file.arrayBuffer();
+
+
+        const workbook =
+            XLSX.read(
+
+                buffer,
+
+                {
+                    type:"array",
+                    cellDates:false
+                }
+
+            );
+
+
+        const sheet =
+            workbook.Sheets[
+                workbook.SheetNames[0]
+            ];
+
+
+        const rows =
+            XLSX.utils.sheet_to_json(
+                sheet,
+                {
+                    defval:""
+                }
+            );
+
+
+        const insertRows = [];
+
+
+        rows.forEach(
+
+            row => {
+
+                const name =
+                    row.Name ??
+                    row.name ??
+                    "";
+
+
+                const mobile =
+                    row.Mobile ??
+                    row.mobile ??
+                    "";
+
+
+                const vehicle =
+                    row.Vehicle_Number ??
+                    row.vehicle_no ??
+                    row.Vehicle ??
+                    "";
+
+
+                const expiry =
+                    row.Expiry_Date ??
+                    row.expiry_date ??
+                    row.Expiry ??
+                    "";
+
+
+                if(
+                    String(name)
+                        .trim() &&
+
+                    String(mobile)
+                        .trim() &&
+
+                    expiry
+                ){
+
+                    const normalizedDate =
+                        normalizeExcelDate(
+                            expiry
+                        );
+
+
+                    if(normalizedDate){
+
+                        insertRows.push({
+
+                            name:
+                                String(
+                                    name
+                                ).trim(),
+
+                            mobile:
+                                String(
+                                    mobile
+                                ).trim(),
+
+                            vehicle_no:
+                                String(
+                                    vehicle
+                                ).trim() ||
+                                null,
+
+                            expiry_date:
+                                normalizedDate
+
+                        });
+
+                    }
+
+                }
+
+            }
+
+        );
+
+
+        if(
+            !insertRows.length
+        ){
+
+            alert(
+                "No valid records found. Please use Download Template."
+            );
+
+            return;
+
+        }
+
+
+        /*
+           500 records per insert batch.
+        */
+
+        let total = 0;
+
+
+        for(
+            let i = 0;
+            i < insertRows.length;
+            i += 500
+        ){
+
+            const batch =
+                insertRows.slice(
+                    i,
+                    i + 500
+                );
+
+
+            const {
+                error
+            } =
+                await client
+                    .from("customers")
+                    .insert(
+                        batch
+                    );
+
+
+            if(error){
+
+                throw error;
+
+            }
+
+
+            total +=
+                batch.length;
+
+        }
+
+
+        alert(
+            total +
+            " customers imported successfully."
+        );
+
+
+        event.target.value = "";
+
+
+        customerPage = 1;
+
+        customerFilter = "all";
+
+
+        await loadAll();
+
+
+    }catch(error){
+
+        console.error(
+            "IMPORT ERROR:",
+            error
+        );
+
+
+        alert(
+            "Import failed: " +
+            error.message
+        );
+
+
+        event.target.value = "";
+
+    }
+
+}
+
+
+
+/* =====================================================
+   DATE FUNCTIONS
+===================================================== */
+
+function parseLocalDate(
+    value
+){
+
+    if(!value){
+
+        return null;
+
+    }
+
+
+    const stringValue =
+        String(value);
+
+
+    /*
+       Supabase date:
+       YYYY-MM-DD
+
+       Isko local date ke roop mein
+       parse karna important hai.
+    */
+
+    if(
+        /^\d{4}-\d{2}-\d{2}$/
+        .test(
+            stringValue
+        )
+    ){
+
+        const parts =
+            stringValue
+                .split("-")
+                .map(Number);
+
+
+        return new Date(
+
+            parts[0],
+
+            parts[1] - 1,
+
+            parts[2]
+
+        );
+
+    }
+
+
+    return new Date(
+        value
+    );
+
+}
+
+
+
+function startOfDay(
+    date
+){
+
+    return new Date(
+
+        date.getFullYear(),
+
+        date.getMonth(),
+
+        date.getDate()
+
+    );
+
+}
+
+
+
+function toISODate(
+    date
+){
+
+    const year =
+        date.getFullYear();
+
+
+    const month =
+        String(
+            date.getMonth() + 1
+        )
+        .padStart(
+            2,
+            "0"
+        );
+
+
+    const day =
+        String(
+            date.getDate()
+        )
+        .padStart(
+            2,
+            "0"
+        );
+
+
+    return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day
+    );
+
+}
+
+
+
+function formatDate(
+    value
+){
+
+    const date =
+        parseLocalDate(
+            value
+        );
+
+
+    if(
+        !date ||
+        isNaN(date)
+    ){
+
+        return "-";
+
+    }
+
+
+    return (
+
+        String(
+            date.getDate()
+        )
+        .padStart(
+            2,
+            "0"
+        )
+
+        +
+
+        "-"
+
+        +
+
+        String(
+            date.getMonth() + 1
+        )
+        .padStart(
+            2,
+            "0"
+        )
+
+        +
+
+        "-"
+
+        +
+
+        date.getFullYear()
+
+    );
+
+}
+
+
+
+/* =====================================================
+   EXCEL DATE
+===================================================== */
+
+function normalizeExcelDate(
+    value
+){
+
+    if(!value){
+
+        return null;
+
+    }
+
+
+    /*
+       Excel serial number
+    */
+
+    if(
+        typeof value ===
+        "number"
+    ){
+
+        const date =
+            XLSX.SSF.parse_date_code(
+                value
+            );
+
+
+        if(!date){
+
+            return null;
+
+        }
+
+
+        return (
+
+            date.y +
+
+            "-" +
+
+            String(
+                date.m
+            )
+            .padStart(
+                2,
+                "0"
+            )
+
+            +
+
+            "-" +
+
+            String(
+                date.d
+            )
+            .padStart(
+                2,
+                "0"
+            )
+
+        );
+
+    }
+
+
+    const valueString =
+        String(
+            value
+        )
+        .trim();
+
+
+    /*
+       YYYY-MM-DD
+    */
+
+    if(
+        /^\d{4}-\d{2}-\d{2}$/
+        .test(
+            valueString
+        )
+    ){
+
+        return valueString;
+
+    }
+
+
+    /*
+       DD-MM-YYYY
+    */
+
+    if(
+        /^\d{2}-\d{2}-\d{4}$/
+        .test(
+            valueString
+        )
+    ){
+
+        const [
+            day,
+            month,
+            year
+        ] =
+            valueString.split("-");
+
+
+        return (
+            year +
+            "-" +
+            month +
+            "-" +
+            day
+        );
+
+    }
+
+
+    /*
+       DD/MM/YYYY
+    */
+
+    if(
+        /^\d{2}\/\d{2}\/\d{4}$/
+        .test(
+            valueString
+        )
+    ){
+
+        const [
+            day,
+            month,
+            year
+        ] =
+            valueString.split("/");
+
+
+        return (
+            year +
+            "-" +
+            month +
+            "-" +
+            day
+        );
+
+    }
+
+
+    return valueString;
+
+}
+
+
+
+/* =====================================================
+   REMINDER TYPE
+===================================================== */
+
+function formatReminderType(
+    type
+){
+
+    const types = {
+
+        "30_days":
+            "30 Days Before",
+
+        "15_days":
+            "15 Days Before",
+
+        "7_days":
+            "7 Days Before",
+
+        "1_day":
+            "1 Day Before",
+
+        "expiry_day":
+            "Expiry Day"
+
+    };
+
+
+    return (
+        types[type] ||
+        type ||
+        "-"
+    );
+
+}
+
+
+
+/* =====================================================
+   MOBILE NUMBER
+===================================================== */
+
+function cleanMobile(
+    mobile
+){
+
+    let number =
+        String(
+            mobile || ""
+        )
+        .replace(
+            /\D/g,
+            ""
+        );
+
+
+    /*
+       10 digit Indian mobile
+    */
+
+    if(
+        number.length === 10
+    ){
+
+        number =
+            "91" +
+            number;
+
+    }
+
+
+    /*
+       0XXXXXXXXXX
+    */
+
+    if(
+        number.startsWith("0") &&
+        number.length === 11
+    ){
+
+        number =
+            "91" +
+            number.substring(
+                1
+            );
+
+    }
+
+
+    return number;
+
+}
+
+
+
+/* =====================================================
+   HTML ESCAPE
+===================================================== */
+
+function escapeHtml(
+    value
+){
+
+    return String(
+        value ?? ""
+    )
+
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+
+    .replace(
+        /</g,
+        "&lt;"
+    )
+
+    .replace(
+        />/g,
+        "&gt;"
+    )
+
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+
+/* =====================================================
+   JAVASCRIPT STRING ESCAPE
+===================================================== */
+
+function escapeJs(
+    value
+){
+
+    return String(
+        value ?? ""
+    )
+
+    .replace(
+        /\\/g,
+        "\\\\"
+    )
+
+    .replace(
+        /'/g,
+        "\\'"
+    )
+
+    .replace(
+        /"/g,
+        '\\"'
+    )
+
+    .replace(
+        /\n/g,
+        " "
+    )
+
+    .replace(
+        /\r/g,
+        " "
+    );
+
+}
+
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+function showMessage(
+    id,
+    text,
+    type
+){
+
+    const box =
+        document.getElementById(
+            id
+        );
+
+
+    if(!box){
+
+        return;
+
+    }
+
+
+    box.innerText =
+        text;
+
+
+    box.className =
+        "message " +
+        (
+            type === "success"
+                ? "success"
+                : "error"
+        );
+
+
+    box.style.display =
+        "block";
+
+
+    setTimeout(
+
+        function(){
+
+            box.style.display =
+                "none";
+
+        },
+
+        6000
+
+    );
+
+}
+
+
+
+/* =====================================================
+   AUTH STATE
+===================================================== */
+
+client.auth.onAuthStateChange(
+
+    function(
+        event,
+        session
+    ){
+
+        if(
+            event ===
+            "SIGNED_OUT"
+        ){
+
+            customers = [];
+
+            reminders = [];
+
+            showLogin();
+
+        }
+
+    }
+
+);
+
+</script>
+
+</body>
+</html>
