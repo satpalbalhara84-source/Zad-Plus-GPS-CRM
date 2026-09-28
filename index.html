@@ -1,763 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zad Plus GPS CRM</title>
+async function loadCustomers() {
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    customers = [];
 
-<style>
-*{
-    box-sizing:border-box;
-}
+    const batchSize = 1000;
 
-body{
-    margin:0;
-    font-family:Arial,Helvetica,sans-serif;
-    background:#f4f7fb;
-    color:#222;
-}
+    for (
+        let from = 0;
+        ;
+        from += batchSize
+    ) {
 
-header{
-    background:#111827;
-    color:white;
-    padding:18px;
-    text-align:center;
-}
+        const {
+            data,
+            error
+        } = await client
+            .from("customers")
+            .select(
+                "id,name,mobile,vehicle_no,expiry_date,created_at"
+            )
+            .order(
+                "created_at",
+                { ascending: false }
+            )
+            .order(
+                "id",
+                { ascending: false }
+            )
+            .range(
+                from,
+                from + batchSize - 1
+            );
 
-header h1{
-    margin:0;
-    font-size:24px;
-}
+        if (error) {
+            throw error;
+        }
 
-header p{
-    margin:5px 0 0;
-    opacity:.8;
-}
+        if (data && data.length) {
+            customers.push(...data);
+        }
 
-.container{
-    max-width:1200px;
-    margin:auto;
-    padding:20px;
-}
+        // Agar 1000 se kam records mile,
+        // matlab last batch aa gaya.
+        if (
+            !data ||
+            data.length < batchSize
+        ) {
+            break;
+        }
 
-.card{
-    background:white;
-    border-radius:14px;
-    padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 3px 15px rgba(0,0,0,.08);
-}
-
-.hidden{
-    display:none !important;
-}
-
-h2{
-    margin-top:0;
-}
-
-input{
-    width:100%;
-    padding:12px;
-    border:1px solid #d1d5db;
-    border-radius:8px;
-    margin-top:6px;
-    font-size:15px;
-}
-
-label{
-    display:block;
-    font-weight:bold;
-    margin-bottom:15px;
-}
-
-button{
-    border:0;
-    padding:11px 16px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-    margin:4px;
-}
-
-button:disabled{
-    opacity:.6;
-    cursor:not-allowed;
-}
-
-.btn-primary{
-    background:#2563eb;
-    color:white;
-}
-
-.btn-success{
-    background:#16a34a;
-    color:white;
-}
-
-.btn-danger{
-    background:#dc2626;
-    color:white;
-}
-
-.btn-warning{
-    background:#f59e0b;
-    color:white;
-}
-
-.btn-dark{
-    background:#111827;
-    color:white;
-}
-
-.btn-gray{
-    background:#e5e7eb;
-    color:#111;
-}
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-}
-
-.stat{
-    background:white;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 3px 12px rgba(0,0,0,.06);
-}
-
-.stat h3{
-    margin:0;
-    color:#6b7280;
-    font-size:14px;
-}
-
-.stat strong{
-    display:block;
-    font-size:28px;
-    margin-top:8px;
-}
-
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px 20px;
-}
-
-.table-wrap{
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:850px;
-}
-
-th,td{
-    padding:12px;
-    border-bottom:1px solid #e5e7eb;
-    text-align:left;
-}
-
-th{
-    background:#f3f4f6;
-}
-
-.badge{
-    display:inline-block;
-    padding:5px 9px;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:bold;
-}
-
-.badge-today{
-    background:#fee2e2;
-    color:#b91c1c;
-}
-
-.badge-upcoming{
-    background:#dcfce7;
-    color:#166534;
-}
-
-.badge-missed{
-    background:#fef3c7;
-    color:#92400e;
-}
-
-.badge-done{
-    background:#dbeafe;
-    color:#1d4ed8;
-}
-
-.message{
-    padding:10px;
-    border-radius:8px;
-    margin-bottom:15px;
-    display:none;
-}
-
-.success{
-    background:#dcfce7;
-    color:#166534;
-}
-
-.error{
-    background:#fee2e2;
-    color:#991b1b;
-}
-
-.login-box{
-    max-width:450px;
-    margin:50px auto;
-}
-
-.search{
-    margin-bottom:15px;
-}
-
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.modal{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.6);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    z-index:1000;
-}
-
-.modal-box{
-    background:white;
-    width:100%;
-    max-width:500px;
-    padding:25px;
-    border-radius:15px;
-}
-
-.small{
-    color:#6b7280;
-    font-size:13px;
-}
-
-#expiringSoonCard{
-    transition:transform .15s ease, box-shadow .15s ease;
-}
-
-#expiringSoonCard:hover{
-    transform:translateY(-2px);
-    box-shadow:0 5px 18px rgba(0,0,0,.12);
-}
-
-@media(max-width:800px){
-
-    .stats{
-        grid-template-columns:repeat(2,1fr);
+        // Safety limit
+        if (from >= 20000) {
+            break;
+        }
     }
 
-    .form-grid{
-        grid-template-columns:1fr;
+    const el =
+        document.getElementById(
+            "totalCustomers"
+        );
+
+    if (el) {
+        el.innerText =
+            customers.length;
     }
 }
 
-@media(max-width:500px){
-
-    .stats{
-        grid-template-columns:1fr 1fr;
-        gap:8px;
-    }
-
-    .stat{
-        padding:14px;
-    }
-
-    .stat strong{
-        font-size:22px;
-    }
-
-    .container{
-        padding:10px;
-    }
-
-    button{
-        padding:9px 12px;
-    }
-
-    header h1{
-        font-size:20px;
-    }
-}
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-<div id="loginScreen">
-
-    <div class="login-box card">
-
-        <h1>ZAD PLUS</h1>
-        <h2>GPS Customer CRM</h2>
-
-        <div id="loginMessage" class="message"></div>
-
-        <label>
-            Email
-            <input
-                type="email"
-                id="loginEmail"
-                autocomplete="email"
-                placeholder="Enter email"
-            >
-        </label>
-
-        <label>
-            Password
-            <input
-                type="password"
-                id="loginPassword"
-                autocomplete="current-password"
-                placeholder="Enter password"
-            >
-        </label>
-
-        <button
-            type="button"
-            class="btn-primary"
-            onclick="login()"
-        >
-            Login
-        </button>
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showSignup()"
-        >
-            Create Account
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- SIGNUP -->
-<div id="signupScreen" class="hidden">
-
-    <div class="login-box card">
-
-        <h1>Create Account</h1>
-
-        <div id="signupMessage" class="message"></div>
-
-        <label>
-            Email
-            <input
-                type="email"
-                id="signupEmail"
-                autocomplete="email"
-                placeholder="Email"
-            >
-        </label>
-
-        <label>
-            Password
-            <input
-                type="password"
-                id="signupPassword"
-                autocomplete="new-password"
-                placeholder="Minimum 6 characters"
-            >
-        </label>
-
-        <button
-            type="button"
-            class="btn-success"
-            onclick="signup()"
-        >
-            Create Account
-        </button>
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showLogin()"
-        >
-            Back to Login
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- MAIN APP -->
-<div id="app" class="hidden">
-
-<header>
-    <h1>ZAD PLUS GPS CRM</h1>
-    <p>GPS Customer Reminder Management</p>
-</header>
-
-<div class="container">
-
-    <!-- TOP BAR -->
-    <div class="card topbar">
-
-        <div>
-            <strong id="userEmail"></strong>
-        </div>
-
-        <div>
-
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="showAddCustomer()"
-            >
-                + Add Customer
-            </button>
-
-            <button
-                type="button"
-                class="btn-dark"
-                onclick="logout()"
-            >
-                Logout
-            </button>
-
-        </div>
-
-    </div>
-
-
-    <!-- MESSAGE -->
-    <div id="mainMessage" class="message"></div>
-
-
-    <!-- STATS -->
-    <div class="stats">
-
-        <div class="stat">
-            <h3>Total Customers</h3>
-            <strong id="totalCustomers">0</strong>
-        </div>
-
-        <div class="stat">
-            <h3>Due Today</h3>
-            <strong id="dueToday">0</strong>
-        </div>
-
-        <div
-            class="stat"
-            id="expiringSoonCard"
-            onclick="showExpiringSoon()"
-            style="cursor:pointer;"
-        >
-            <h3>Expiring Soon (7 Days)</h3>
-            <strong id="next7Days">0</strong>
-            <div class="small">Click to view</div>
-        </div>
-
-        <div class="stat">
-            <h3>Expired</h3>
-            <strong id="expiredCustomers">0</strong>
-        </div>
-
-    </div>
-
-
-    <!-- ADD CUSTOMER -->
-    <div
-        id="customerFormCard"
-        class="card hidden"
-    >
-
-        <h2 id="formTitle">Add Customer</h2>
-
-        <div class="form-grid">
-
-            <label>
-                Name *
-                <input
-                    type="text"
-                    id="customerName"
-                    autocomplete="name"
-                    placeholder="Customer Name"
-                >
-            </label>
-
-            <label>
-                Mobile *
-                <input
-                    type="tel"
-                    id="customerMobile"
-                    inputmode="numeric"
-                    autocomplete="tel"
-                    placeholder="10 digit mobile number"
-                >
-            </label>
-
-            <label>
-                Vehicle Number
-                <input
-                    type="text"
-                    id="vehicleNumber"
-                    placeholder="HR12AB1234"
-                >
-            </label>
-
-            <label>
-                GPS Expiry Date *
-                <input
-                    type="date"
-                    id="expiryDate"
-                >
-            </label>
-
-        </div>
-
-        <button
-            type="button"
-            class="btn-success"
-            onclick="saveCustomer()"
-        >
-            Save Customer
-        </button>
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="hideCustomerForm()"
-        >
-            Cancel
-        </button>
-
-        <input
-            type="hidden"
-            id="editCustomerId"
-        >
-
-    </div>
-
-
-    <!-- CUSTOMER LIST -->
-    <div class="card">
-
-        <div class="topbar">
-
-            <h2>Customers</h2>
-
-            <div>
-
-                <button
-                    type="button"
-                    class="btn-primary"
-                    onclick="downloadTemplate()"
-                >
-                    Download Template
-                </button>
-
-                <button
-                    type="button"
-                    class="btn-success"
-                    onclick="document.getElementById('csvFile').click()"
-                >
-                    Import Excel / CSV
-                </button>
-
-                <input
-                    type="file"
-                    id="csvFile"
-                    accept=".csv,.xlsx,.xls"
-                    style="display:none"
-                    onchange="importFile(event)"
-                >
-
-            </div>
-
-        </div>
-
-
-        <input
-            class="search"
-            type="text"
-            id="searchBox"
-            placeholder="Search Name / Mobile / Vehicle Number"
-            oninput="resetCustomerPage()"
-        >
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="showAllCustomers()"
-        >
-            Show All Customers
-        </button>
-
-
-        <div class="table-wrap">
-
-            <table>
-
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Mobile</th>
-                        <th>Vehicle</th>
-                        <th>Expiry</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody id="customerTable"></tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-
-    <!-- REMINDER CENTER -->
-    <div class="card">
-
-        <div class="topbar">
-
-            <h2>Reminder Center</h2>
-
-            <button
-                type="button"
-                class="btn-gray"
-                onclick="loadAll()"
-            >
-                Refresh
-            </button>
-
-        </div>
-
-        <div class="table-wrap">
-
-            <table>
-
-                <thead>
-                    <tr>
-                        <th>Customer</th>
-                        <th>Mobile</th>
-                        <th>Vehicle</th>
-                        <th>Reminder</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody id="reminderTable">
-                    <tr>
-                        <td colspan="7">Loading reminders...</td>
-                    </tr>
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-</div>
-
-</div>
-
-
-<!-- EDIT MODAL -->
-<div id="editModal" class="modal hidden">
-
-    <div class="modal-box">
-
-        <h2>Edit Customer</h2>
-
-        <label>
-            Name
-            <input
-                type="text"
-                id="editName"
-                autocomplete="name"
-            >
-        </label>
-
-        <label>
-            Mobile
-            <input
-                type="tel"
-                id="editMobile"
-                inputmode="numeric"
-                autocomplete="tel"
-            >
-        </label>
-
-        <label>
-            Vehicle Number
-            <input
-                type="text"
-                id="editVehicle"
-            >
-        </label>
-
-        <label>
-            GPS Expiry Date
-            <input
-                type="date"
-                id="editExpiry"
-            >
-        </label>
-
-        <button
-            type="button"
-            class="btn-success"
-            onclick="updateCustomer()"
-        >
-            Update
-        </button>
-
-        <button
-            type="button"
-            class="btn-gray"
-            onclick="closeEdit()"
-        >
-            Cancel
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- PART 2 YAHAN SE START HOGA -->
-<script>
-    const SUPABASE_URL = "https://gynvihsyjpcaehnynoqr.supabase.co";
+                const SUPABASE_URL = "https://gynvihsyjpcaehnynoqr.supabase.co";
 
 /*
   IMPORTANT:
-  Yahan apni existing Supabase PUBLISHABLE KEY hi rakhein.
-  Secret / service_role key kabhi use na karein.
+  Yahan apni EXISTING Supabase PUBLISHABLE KEY paste karein.
+  Secret / service_role key mat lagana.
 */
 const SUPABASE_KEY = "sb_publishable_-wH5ndigNOzzodu_dAoUwA_Fzy5YKjL";
 
@@ -849,10 +162,15 @@ function showSignup() {
 async function login() {
 
     const email =
-        document.getElementById("loginEmail").value.trim();
+        document
+            .getElementById("loginEmail")
+            .value
+            .trim();
 
     const password =
-        document.getElementById("loginPassword").value;
+        document
+            .getElementById("loginPassword")
+            .value;
 
 
     if (!email || !password) {
@@ -906,7 +224,10 @@ async function login() {
 
     } catch (e) {
 
-        console.error("LOGIN ERROR:", e);
+        console.error(
+            "LOGIN ERROR:",
+            e
+        );
 
         showMessage(
             "loginMessage",
@@ -930,10 +251,15 @@ async function login() {
 async function signup() {
 
     const email =
-        document.getElementById("signupEmail").value.trim();
+        document
+            .getElementById("signupEmail")
+            .value
+            .trim();
 
     const password =
-        document.getElementById("signupPassword").value;
+        document
+            .getElementById("signupPassword")
+            .value;
 
 
     if (!email || !password) {
@@ -988,7 +314,10 @@ async function signup() {
 
     } catch (e) {
 
-        console.error("SIGNUP ERROR:", e);
+        console.error(
+            "SIGNUP ERROR:",
+            e
+        );
 
         showMessage(
             "signupMessage",
@@ -1038,7 +367,10 @@ async function showApp() {
 
 
         const userEmail =
-            document.getElementById("userEmail");
+            document.getElementById(
+                "userEmail"
+            );
+
 
         if (userEmail) {
 
@@ -1053,11 +385,16 @@ async function showApp() {
 
     } catch (e) {
 
-        console.error("APP LOAD ERROR:", e);
+        console.error(
+            "APP LOAD ERROR:",
+            e
+        );
+
 
         showMessage(
             "mainMessage",
-            "Dashboard load error: " + e.message,
+            "Dashboard load error: " +
+            e.message,
             "error"
         );
     }
@@ -1065,19 +402,17 @@ async function showApp() {
 
 
 /* =========================
-   FAST DATA LOADING
+   FAST LOAD ALL
 ========================= */
-
-/*
-  IMPORTANT SPEED CHANGE:
-
-  Customers aur reminders ek saath load honge.
-  Pehle ye sequentially load ho rahe the.
-*/
 
 async function loadAll() {
 
     try {
+
+        /*
+          Customers + Reminders
+          ek saath load honge.
+        */
 
         await Promise.all([
             loadCustomers(),
@@ -1086,17 +421,24 @@ async function loadAll() {
 
 
         updateDashboard();
+
         renderCustomers();
+
         renderReminders();
 
 
     } catch (e) {
 
-        console.error("LOAD ALL ERROR:", e);
+        console.error(
+            "LOAD ALL ERROR:",
+            e
+        );
+
 
         showMessage(
             "mainMessage",
-            "Data load error: " + e.message,
+            "Data load error: " +
+            e.message,
             "error"
         );
     }
@@ -1105,18 +447,40 @@ async function loadAll() {
 
 /* =========================
    LOAD CUSTOMERS
+   1000+ CUSTOMERS SUPPORT
 ========================= */
 
 async function loadCustomers() {
 
-    const { data, error } =
+    customers = [];
 
-        await client
+    /*
+      Supabase normally ek query me
+      limited rows return kar sakta hai.
+
+      Isliye 1000-1000 ke batches me
+      customers load karenge.
+    */
+
+    const batchSize = 1000;
+
+
+    for (
+        let from = 0;
+        ;
+        from += batchSize
+    ) {
+
+        const {
+            data,
+            error
+        } = await client
+
             .from("customers")
 
             /*
-              Sirf wahi columns load kar rahe hain
-              jo CRM me actually use ho rahe hain.
+              Sirf required fields.
+              Isse data transfer kam rahega.
             */
             .select(
                 "id,name,mobile,vehicle_no,expiry_date,created_at"
@@ -1124,25 +488,72 @@ async function loadCustomers() {
 
             .order(
                 "created_at",
-                { ascending: false }
+                {
+                    ascending: false
+                }
             )
 
             .order(
                 "id",
-                { ascending: false }
+                {
+                    ascending: false
+                }
             )
 
-            .limit(5000);
+            .range(
+                from,
+                from + batchSize - 1
+            );
 
 
-    if (error) throw error;
+        if (error) {
+
+            throw error;
+        }
 
 
-    customers = data || [];
+        if (
+            data &&
+            data.length
+        ) {
+
+            customers.push(
+                ...data
+            );
+        }
+
+
+        /*
+          Agar last batch 1000 se kam hai,
+          to data complete ho gaya.
+        */
+
+        if (
+            !data ||
+            data.length < batchSize
+        ) {
+
+            break;
+        }
+
+
+        /*
+          Safety limit:
+          maximum 21,000 records.
+          Zarurat pade to ise badha sakte hain.
+        */
+
+        if (from >= 20000) {
+
+            break;
+        }
+    }
 
 
     const el =
-        document.getElementById("totalCustomers");
+        document.getElementById(
+            "totalCustomers"
+        );
 
 
     if (el) {
@@ -1163,63 +574,68 @@ async function loadReminders() {
 
 
     /*
-      Reminder Center me sirf:
-      - pending
-      - due today ya past
+      Reminder Center me sirf pending
+      aur due reminders chahiye.
 
-      reminders chahiye.
-
-      Future reminders download nahi honge.
-      Isse query ka size kaafi kam ho jayega.
+      Future reminders ko har refresh par
+      download nahi karenge.
     */
 
     const today =
         toISODate(
-            startOfDay(new Date())
+            startOfDay(
+                new Date()
+            )
         );
 
 
-    const { data, error } =
+    const {
+        data,
+        error
+    } = await client
 
-        await client
-            .from("reminders")
+        .from("reminders")
 
-            .select(`
-                id,
-                customer_id,
-                reminder_type,
-                reminder_date,
-                status,
-                sent_at,
-                customers(
-                    name,
-                    mobile,
-                    vehicle_no,
-                    expiry_date
-                )
-            `)
-
-            .neq(
-                "status",
-                "done"
+        .select(`
+            id,
+            customer_id,
+            reminder_type,
+            reminder_date,
+            status,
+            sent_at,
+            customers(
+                name,
+                mobile,
+                vehicle_no,
+                expiry_date
             )
+        `)
 
-            .lte(
-                "reminder_date",
-                today
-            )
+        .neq(
+            "status",
+            "done"
+        )
 
-            .order(
-                "reminder_date",
-                { ascending: true }
-            )
+        .lte(
+            "reminder_date",
+            today
+        )
 
-            .order(
-                "id",
-                { ascending: true }
-            )
+        .order(
+            "reminder_date",
+            {
+                ascending: true
+            }
+        )
 
-            .limit(5000);
+        .order(
+            "id",
+            {
+                ascending: true
+            }
+        )
+
+        .limit(5000);
 
 
     if (error) {
@@ -1235,62 +651,85 @@ async function loadReminders() {
     }
 
 
-    reminders = data || [];
+    reminders =
+        data || [];
 }
 
 
 /* =========================
-   ADD CUSTOMER FORM
+   ADD CUSTOMER
 ========================= */
 
 function showAddCustomer() {
 
     document
-        .getElementById("customerFormCard")
-        .classList.remove("hidden");
+        .getElementById(
+            "customerFormCard"
+        )
+        .classList
+        .remove("hidden");
 
 
     document
-        .getElementById("formTitle")
-        .innerText = "Add Customer";
+        .getElementById(
+            "formTitle"
+        )
+        .innerText =
+            "Add Customer";
 
 
     document
-        .getElementById("editCustomerId")
+        .getElementById(
+            "editCustomerId"
+        )
         .value = "";
 
 
     document
-        .getElementById("customerName")
+        .getElementById(
+            "customerName"
+        )
         .value = "";
 
 
     document
-        .getElementById("customerMobile")
+        .getElementById(
+            "customerMobile"
+        )
         .value = "";
 
 
     document
-        .getElementById("vehicleNumber")
+        .getElementById(
+            "vehicleNumber"
+        )
         .value = "";
 
 
     document
-        .getElementById("expiryDate")
+        .getElementById(
+            "expiryDate"
+        )
         .value = "";
 
 
     document
-        .getElementById("customerName")
+        .getElementById(
+            "customerName"
+        )
         .focus();
 
 
     window.scrollTo({
         top:
             document
-                .getElementById("customerFormCard")
+                .getElementById(
+                    "customerFormCard"
+                )
                 .offsetTop - 20,
-        behavior: "auto"
+
+        behavior:
+            "auto"
     });
 }
 
@@ -1298,8 +737,11 @@ function showAddCustomer() {
 function hideCustomerForm() {
 
     document
-        .getElementById("customerFormCard")
-        .classList.add("hidden");
+        .getElementById(
+            "customerFormCard"
+        )
+        .classList
+        .add("hidden");
 }
 
 
@@ -1311,38 +753,52 @@ async function saveCustomer() {
 
     const name =
         document
-            .getElementById("customerName")
+            .getElementById(
+                "customerName"
+            )
             .value
             .trim();
 
 
     const mobile =
         document
-            .getElementById("customerMobile")
+            .getElementById(
+                "customerMobile"
+            )
             .value
             .trim();
 
 
     const vehicle =
         document
-            .getElementById("vehicleNumber")
+            .getElementById(
+                "vehicleNumber"
+            )
             .value
             .trim();
 
 
     const expiry =
         document
-            .getElementById("expiryDate")
+            .getElementById(
+                "expiryDate"
+            )
             .value;
 
 
     const editId =
         document
-            .getElementById("editCustomerId")
+            .getElementById(
+                "editCustomerId"
+            )
             .value;
 
 
-    if (!name || !mobile || !expiry) {
+    if (
+        !name ||
+        !mobile ||
+        !expiry
+    ) {
 
         showMessage(
             "mainMessage",
@@ -1372,13 +828,15 @@ async function saveCustomer() {
                         mobile,
 
                         vehicle_no:
-                            vehicle || null,
+                            vehicle ||
+                            null,
 
                         expiry_date:
                             expiry,
 
                         updated_at:
-                            new Date().toISOString()
+                            new Date()
+                                .toISOString()
 
                     })
                     .eq(
@@ -1400,7 +858,8 @@ async function saveCustomer() {
                         mobile,
 
                         vehicle_no:
-                            vehicle || null,
+                            vehicle ||
+                            null,
 
                         expiry_date:
                             expiry
@@ -1420,9 +879,11 @@ async function saveCustomer() {
 
         showMessage(
             "mainMessage",
+
             editId
                 ? "Customer updated"
                 : "Customer added",
+
             "success"
         );
 
@@ -1440,7 +901,8 @@ async function saveCustomer() {
 
         showMessage(
             "mainMessage",
-            "Save failed: " + e.message,
+            "Save failed: " +
+            e.message,
             "error"
         );
     }
@@ -1462,44 +924,63 @@ function openEdit(id) {
     if (!c) return;
 
 
-    currentEditId = id;
+    currentEditId =
+        id;
 
 
     document
-        .getElementById("editName")
-        .value = c.name || "";
+        .getElementById(
+            "editName"
+        )
+        .value =
+            c.name || "";
 
 
     document
-        .getElementById("editMobile")
-        .value = c.mobile || "";
+        .getElementById(
+            "editMobile"
+        )
+        .value =
+            c.mobile || "";
 
 
     document
-        .getElementById("editVehicle")
+        .getElementById(
+            "editVehicle"
+        )
         .value =
             c.vehicle_no || "";
 
 
     document
-        .getElementById("editExpiry")
+        .getElementById(
+            "editExpiry"
+        )
         .value =
             c.expiry_date || "";
 
 
     document
-        .getElementById("editModal")
-        .classList.remove("hidden");
+        .getElementById(
+            "editModal"
+        )
+        .classList
+        .remove("hidden");
 }
 
 
 function closeEdit() {
 
-    currentEditId = null;
+    currentEditId =
+        null;
+
 
     document
-        .getElementById("editModal")
-        .classList.add("hidden");
+        .getElementById(
+            "editModal"
+        )
+        .classList
+        .add("hidden");
 }
 
 
@@ -1509,37 +990,51 @@ function closeEdit() {
 
 async function updateCustomer() {
 
-    if (!currentEditId) return;
+    if (!currentEditId) {
+        return;
+    }
 
 
     const name =
         document
-            .getElementById("editName")
+            .getElementById(
+                "editName"
+            )
             .value
             .trim();
 
 
     const mobile =
         document
-            .getElementById("editMobile")
+            .getElementById(
+                "editMobile"
+            )
             .value
             .trim();
 
 
     const vehicle =
         document
-            .getElementById("editVehicle")
+            .getElementById(
+                "editVehicle"
+            )
             .value
             .trim();
 
 
     const expiry =
         document
-            .getElementById("editExpiry")
+            .getElementById(
+                "editExpiry"
+            )
             .value;
 
 
-    if (!name || !mobile || !expiry) {
+    if (
+        !name ||
+        !mobile ||
+        !expiry
+    ) {
 
         alert(
             "Name, Mobile and Expiry Date are required."
@@ -1551,33 +1046,41 @@ async function updateCustomer() {
 
     try {
 
-        const { error } =
+        const {
+            error
+        } = await client
 
-            await client
-                .from("customers")
-                .update({
+            .from("customers")
 
-                    name,
+            .update({
 
-                    mobile,
+                name,
 
-                    vehicle_no:
-                        vehicle || null,
+                mobile,
 
-                    expiry_date:
-                        expiry,
+                vehicle_no:
+                    vehicle ||
+                    null,
 
-                    updated_at:
-                        new Date().toISOString()
+                expiry_date:
+                    expiry,
 
-                })
-                .eq(
-                    "id",
-                    currentEditId
-                );
+                updated_at:
+                    new Date()
+                        .toISOString()
+
+            })
+
+            .eq(
+                "id",
+                currentEditId
+            );
 
 
-        if (error) throw error;
+        if (error) {
+
+            throw error;
+        }
 
 
         closeEdit();
@@ -1603,7 +1106,8 @@ async function updateCustomer() {
 
         showMessage(
             "mainMessage",
-            "Update failed: " + e.message,
+            "Update failed: " +
+            e.message,
             "error"
         );
     }
@@ -1621,24 +1125,31 @@ async function deleteCustomer(id) {
             "Delete this customer?"
         )
     ) {
+
         return;
     }
 
 
     try {
 
-        const { error } =
+        const {
+            error
+        } = await client
 
-            await client
-                .from("customers")
-                .delete()
-                .eq(
-                    "id",
-                    id
-                );
+            .from("customers")
+
+            .delete()
+
+            .eq(
+                "id",
+                id
+            );
 
 
-        if (error) throw error;
+        if (error) {
+
+            throw error;
+        }
 
 
         showMessage(
@@ -1661,7 +1172,8 @@ async function deleteCustomer(id) {
 
         showMessage(
             "mainMessage",
-            "Delete failed: " + e.message,
+            "Delete failed: " +
+            e.message,
             "error"
         );
     }
@@ -1674,7 +1186,8 @@ async function deleteCustomer(id) {
 
 function resetCustomerPage() {
 
-    customerPage = 1;
+    customerPage =
+        1;
 
     renderCustomers();
 }
@@ -1685,7 +1198,8 @@ function showExpiringSoon() {
     customerFilter =
         "expiring";
 
-    customerPage = 1;
+    customerPage =
+        1;
 
 
     const title =
@@ -1709,7 +1223,9 @@ function showExpiringSoon() {
 
     const card =
         document
-            .getElementById("customerTable")
+            .getElementById(
+                "customerTable"
+            )
             ?.closest(".card");
 
 
@@ -1728,7 +1244,8 @@ function showAllCustomers() {
     customerFilter =
         "all";
 
-    customerPage = 1;
+    customerPage =
+        1;
 
 
     const title =
@@ -1763,7 +1280,9 @@ function renderCustomers() {
         );
 
 
-    if (!tbody) return;
+    if (!tbody) {
+        return;
+    }
 
 
     const q =
@@ -1772,7 +1291,8 @@ function renderCustomers() {
                 .getElementById(
                     "searchBox"
                 )
-                ?.value || ""
+                ?.value ||
+            ""
         )
         .toLowerCase()
         .trim();
@@ -1785,67 +1305,75 @@ function renderCustomers() {
 
 
     const list =
-        customers.filter(c => {
+        customers.filter(
+            c => {
 
-            const d =
-                parseLocalDate(
-                    c.expiry_date
-                );
-
-
-            if (
-                customerFilter ===
-                "expiring"
-            ) {
-
-                if (
-                    !d ||
-                    isNaN(d)
-                ) {
-                    return false;
-                }
-
-
-                const diff =
-                    Math.round(
-                        (
-                            startOfDay(d)
-                            - today
-                        )
-                        /
-                        86400000
+                const d =
+                    parseLocalDate(
+                        c.expiry_date
                     );
 
 
                 if (
-                    diff < 0 ||
-                    diff > 7
+                    customerFilter ===
+                    "expiring"
                 ) {
-                    return false;
+
+                    if (
+                        !d ||
+                        isNaN(d)
+                    ) {
+
+                        return false;
+                    }
+
+
+                    const diff =
+                        Math.round(
+                            (
+                                startOfDay(d)
+                                -
+                                today
+                            )
+                            /
+                            86400000
+                        );
+
+
+                    if (
+                        diff < 0 ||
+                        diff > 7
+                    ) {
+
+                        return false;
+                    }
                 }
+
+
+                if (!q) {
+                    return true;
+                }
+
+
+                return [
+
+                    c.name,
+
+                    c.mobile,
+
+                    c.vehicle_no
+
+                ].some(
+                    v =>
+                        String(
+                            v || ""
+                        )
+                        .toLowerCase()
+                        .includes(q)
+                );
+
             }
-
-
-            if (!q) return true;
-
-
-            return [
-
-                c.name,
-
-                c.mobile,
-
-                c.vehicle_no
-
-            ].some(v =>
-                String(
-                    v || ""
-                )
-                .toLowerCase()
-                .includes(q)
-            );
-
-        });
+        );
 
 
     const totalPages =
@@ -1870,7 +1398,8 @@ function renderCustomers() {
 
     const from =
         (
-            customerPage - 1
+            customerPage -
+            1
         )
         *
         CUSTOMER_PAGE_SIZE;
@@ -1885,100 +1414,112 @@ function renderCustomers() {
 
 
     tbody.innerHTML =
-        pageRows.map(c => {
+        pageRows
+            .map(
+                c => {
 
-            const status =
-                customerStatus(
-                    c.expiry_date
-                );
-
-
-            return `
-                <tr>
-
-                    <td>
-                        ${escapeHtml(c.name)}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(c.mobile)}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            c.vehicle_no || "-"
-                        )}
-                    </td>
-
-                    <td>
-                        ${formatDate(
+                    const status =
+                        customerStatus(
                             c.expiry_date
-                        )}
-                    </td>
-
-                    <td>
-                        <span
-                            class="badge ${status.className}"
-                        >
-                            ${status.label}
-                        </span>
-                    </td>
-
-                    <td>
-
-                        <button
-                            type="button"
-                            class="btn-primary"
-                            onclick="callCustomer('${escapeJs(c.mobile)}')"
-                        >
-                            Call
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn-success"
-                            onclick="whatsappCustomer(
-                                '${escapeJs(c.name)}',
-                                '${escapeJs(c.mobile)}',
-                                '${escapeJs(c.expiry_date)}'
-                            )"
-                        >
-                            WhatsApp
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn-warning"
-                            onclick="openEdit('${c.id}')"
-                        >
-                            Edit
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn-danger"
-                            onclick="deleteCustomer('${c.id}')"
-                        >
-                            Delete
-                        </button>
-
-                    </td>
-
-                </tr>
-            `;
-
-        })
-        .join("");
+                        );
 
 
-    if (!pageRows.length) {
+                    return `
+                    <tr>
+
+                        <td>
+                            ${escapeHtml(
+                                c.name
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                c.mobile
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                c.vehicle_no ||
+                                "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                c.expiry_date
+                            )}
+                        </td>
+
+                        <td>
+                            <span
+                                class="badge ${status.className}"
+                            >
+                                ${status.label}
+                            </span>
+                        </td>
+
+                        <td>
+
+                            <button
+                                type="button"
+                                class="btn-primary"
+                                onclick="callCustomer('${escapeJs(c.mobile)}')"
+                            >
+                                Call
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn-success"
+                                onclick="whatsappCustomer(
+                                    '${escapeJs(c.name)}',
+                                    '${escapeJs(c.mobile)}',
+                                    '${escapeJs(c.expiry_date)}'
+                                )"
+                            >
+                                WhatsApp
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn-warning"
+                                onclick="openEdit('${c.id}')"
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn-danger"
+                                onclick="deleteCustomer('${c.id}')"
+                            >
+                                Delete
+                            </button>
+
+                        </td>
+
+                    </tr>
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    if (
+        !pageRows.length
+    ) {
 
         tbody.innerHTML =
-            `<tr>
+            `
+            <tr>
                 <td colspan="6">
                     No customers found.
                 </td>
-            </tr>`;
+            </tr>
+            `;
     }
 
 
@@ -2021,28 +1562,34 @@ function renderCustomers() {
             <button
                 type="button"
                 class="btn-gray"
-                ${customerPage <= 1
+                ${
+                    customerPage <= 1
                     ? "disabled"
-                    : ""}
+                    : ""
+                }
                 onclick="changeCustomerPage(-1)"
             >
                 Previous
             </button>
 
             <strong>
-                Page ${customerPage} / ${totalPages}
+                Page ${customerPage} /
+                ${totalPages}
             </strong>
 
             <span class="small">
-                ${list.length} customers found
+                ${list.length}
+                customers found
             </span>
 
             <button
                 type="button"
                 class="btn-gray"
-                ${customerPage >= totalPages
+                ${
+                    customerPage >= totalPages
                     ? "disabled"
-                    : ""}
+                    : ""
+                }
                 onclick="changeCustomerPage(1)"
             >
                 Next
@@ -2058,9 +1605,13 @@ function renderCustomers() {
 }
 
 
-function changeCustomerPage(step) {
+function changeCustomerPage(
+    step
+) {
 
-    customerPage += step;
+    customerPage +=
+        step;
+
 
     renderCustomers();
 
@@ -2087,7 +1638,9 @@ function changeCustomerPage(step) {
    CUSTOMER STATUS
 ========================= */
 
-function customerStatus(expiry) {
+function customerStatus(
+    expiry
+) {
 
     const d =
         parseLocalDate(
@@ -2108,7 +1661,8 @@ function customerStatus(expiry) {
 
         return {
             label: "-",
-            className: "badge-missed"
+            className:
+                "badge-missed"
         };
     }
 
@@ -2129,7 +1683,8 @@ function customerStatus(expiry) {
 
         return {
             label: "Expired",
-            className: "badge-missed"
+            className:
+                "badge-missed"
         };
     }
 
@@ -2138,14 +1693,16 @@ function customerStatus(expiry) {
 
         return {
             label: "Today",
-            className: "badge-today"
+            className:
+                "badge-today"
         };
     }
 
 
     return {
         label: "Active",
-        className: "badge-upcoming"
+        className:
+            "badge-upcoming"
     };
 }
 
@@ -2167,51 +1724,56 @@ function updateDashboard() {
     let expired = 0;
 
 
-    customers.forEach(c => {
+    customers.forEach(
+        c => {
 
-        const d =
-            parseLocalDate(
-                c.expiry_date
-            );
+            const d =
+                parseLocalDate(
+                    c.expiry_date
+                );
 
 
-        if (
-            !d ||
-            isNaN(d)
-        ) {
-            return;
+            if (
+                !d ||
+                isNaN(d)
+            ) {
+
+                return;
+            }
+
+
+            const diff =
+                Math.round(
+                    (
+                        startOfDay(d)
+                        -
+                        today
+                    )
+                    /
+                    86400000
+                );
+
+
+            if (diff < 0) {
+
+                expired++;
+
+            } else if (
+                diff === 0
+            ) {
+
+                dueToday++;
+
+            } else if (
+                diff >= 1 &&
+                diff <= 7
+            ) {
+
+                next7++;
+            }
+
         }
-
-
-        const diff =
-            Math.round(
-                (
-                    startOfDay(d)
-                    -
-                    today
-                )
-                /
-                86400000
-            );
-
-
-        if (diff < 0) {
-
-            expired++;
-
-        } else if (diff === 0) {
-
-            dueToday++;
-
-        } else if (
-            diff >= 1 &&
-            diff <= 7
-        ) {
-
-            next7++;
-        }
-
-    });
+    );
 
 
     document
@@ -2259,7 +1821,9 @@ function renderReminders() {
         );
 
 
-    if (!tbody) return;
+    if (!tbody) {
+        return;
+    }
 
 
     const today =
@@ -2287,107 +1851,114 @@ function renderReminders() {
 
 
     tbody.innerHTML =
-        list.map(r => {
+        list
+            .map(
+                r => {
 
-            const c =
-                r.customers || {};
+                    const c =
+                        r.customers ||
+                        {};
 
 
-            return `
+                    return `
+                    <tr>
 
-                <tr>
-
-                    <td>
-                        ${escapeHtml(
-                            c.name || "-"
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            c.mobile || "-"
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            c.vehicle_no || "-"
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                            formatReminderType(
-                                r.reminder_type
-                            )
-                        )}
-                    </td>
-
-                    <td>
-                        ${formatDate(
-                            r.reminder_date
-                        )}
-                    </td>
-
-                    <td>
-                        <span
-                            class="badge badge-today"
-                        >
+                        <td>
                             ${escapeHtml(
-                                r.status ||
-                                "pending"
+                                c.name ||
+                                "-"
                             )}
-                        </span>
-                    </td>
+                        </td>
 
-                    <td>
+                        <td>
+                            ${escapeHtml(
+                                c.mobile ||
+                                "-"
+                            )}
+                        </td>
 
-                        <button
-                            type="button"
-                            class="btn-primary"
-                            onclick="callCustomer('${escapeJs(c.mobile || "")}')"
-                        >
-                            Call
-                        </button>
+                        <td>
+                            ${escapeHtml(
+                                c.vehicle_no ||
+                                "-"
+                            )}
+                        </td>
 
-                        <button
-                            type="button"
-                            class="btn-success"
-                            onclick="whatsappCustomer(
-                                '${escapeJs(c.name || "")}',
-                                '${escapeJs(c.mobile || "")}',
-                                '${escapeJs(c.expiry_date || "")}'
-                            )"
-                        >
-                            WhatsApp
-                        </button>
+                        <td>
+                            ${escapeHtml(
+                                formatReminderType(
+                                    r.reminder_type
+                                )
+                            )}
+                        </td>
 
-                        <button
-                            type="button"
-                            class="btn-warning"
-                            onclick="markReminderDone('${r.id}')"
-                        >
-                            Mark Done
-                        </button>
+                        <td>
+                            ${formatDate(
+                                r.reminder_date
+                            )}
+                        </td>
 
-                    </td>
+                        <td>
+                            <span
+                                class="badge badge-today"
+                            >
+                                ${escapeHtml(
+                                    r.status ||
+                                    "pending"
+                                )}
+                            </span>
+                        </td>
 
-                </tr>
+                        <td>
 
-            `;
+                            <button
+                                type="button"
+                                class="btn-primary"
+                                onclick="callCustomer('${escapeJs(c.mobile || "")}')"
+                            >
+                                Call
+                            </button>
 
-        })
-        .join("");
+                            <button
+                                type="button"
+                                class="btn-success"
+                                onclick="whatsappCustomer(
+                                    '${escapeJs(c.name || "")}',
+                                    '${escapeJs(c.mobile || "")}',
+                                    '${escapeJs(c.expiry_date || "")}'
+                                )"
+                            >
+                                WhatsApp
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn-warning"
+                                onclick="markReminderDone('${r.id}')"
+                            >
+                                Mark Done
+                            </button>
+
+                        </td>
+
+                    </tr>
+                    `;
+
+                }
+            )
+            .join("");
 
 
     if (!list.length) {
 
         tbody.innerHTML =
-            `<tr>
+            `
+            <tr>
                 <td colspan="7">
                     No pending reminders.
                 </td>
-            </tr>`;
+            </tr>
+            `;
     }
 }
 
@@ -2396,37 +1967,44 @@ function renderReminders() {
    MARK REMINDER DONE
 ========================= */
 
-async function markReminderDone(id) {
+async function markReminderDone(
+    id
+) {
 
     try {
 
-        const { error } =
+        const {
+            error
+        } = await client
 
-            await client
-                .from("reminders")
-                .update({
+            .from("reminders")
 
-                    status: "done",
+            .update({
 
-                    sent_at:
-                        new Date()
-                            .toISOString()
+                status:
+                    "done",
 
-                })
-                .eq(
-                    "id",
-                    id
-                );
+                sent_at:
+                    new Date()
+                        .toISOString()
+
+            })
+
+            .eq(
+                "id",
+                id
+            );
 
 
-        if (error) throw error;
+        if (error) {
+
+            throw error;
+        }
 
 
         /*
-          IMPORTANT SPEED FIX:
-
-          Pura dashboard reload nahi karna.
-          Sirf local reminder remove hoga.
+          Full CRM reload nahi hoga.
+          Sirf reminder list update hogi.
         */
 
         reminders =
@@ -2458,22 +2036,32 @@ async function markReminderDone(id) {
 
 
 /* =========================
-   CALL / WHATSAPP
+   CALL
 ========================= */
 
-function callCustomer(mobile) {
+function callCustomer(
+    mobile
+) {
 
     const number =
-        cleanMobile(mobile);
+        cleanMobile(
+            mobile
+        );
 
 
-    if (!number) return;
+    if (!number) {
+        return;
+    }
 
 
     window.location.href =
         "tel:+" + number;
 }
 
+
+/* =========================
+   WHATSAPP
+========================= */
 
 function whatsappCustomer(
     name,
@@ -2482,10 +2070,14 @@ function whatsappCustomer(
 ) {
 
     const number =
-        cleanMobile(mobile);
+        cleanMobile(
+            mobile
+        );
 
 
-    if (!number) return;
+    if (!number) {
+        return;
+    }
 
 
     const message =
@@ -2497,7 +2089,9 @@ function whatsappCustomer(
         "https://wa.me/" +
         number +
         "?text=" +
-        encodeURIComponent(message),
+        encodeURIComponent(
+            message
+        ),
 
         "_blank"
     );
@@ -2505,7 +2099,7 @@ function whatsappCustomer(
 
 
 /* =========================
-   EXCEL TEMPLATE
+   DOWNLOAD EXCEL TEMPLATE
 ========================= */
 
 function downloadTemplate() {
@@ -2556,16 +2150,20 @@ function downloadTemplate() {
 
 
 /* =========================
-   EXCEL IMPORT
+   IMPORT EXCEL / CSV
 ========================= */
 
-async function importFile(event) {
+async function importFile(
+    event
+) {
 
     const file =
         event.target.files[0];
 
 
-    if (!file) return;
+    if (!file) {
+        return;
+    }
 
 
     try {
@@ -2578,8 +2176,11 @@ async function importFile(event) {
             XLSX.read(
                 buffer,
                 {
-                    type: "array",
-                    cellDates: false
+                    type:
+                        "array",
+
+                    cellDates:
+                        false
                 }
             );
 
@@ -2594,7 +2195,8 @@ async function importFile(event) {
             XLSX.utils.sheet_to_json(
                 sheet,
                 {
-                    defval: ""
+                    defval:
+                        ""
                 }
             );
 
@@ -2602,67 +2204,80 @@ async function importFile(event) {
         const insertRows = [];
 
 
-        rows.forEach(row => {
+        rows.forEach(
+            row => {
 
-            const name =
-                row.Name ??
-                row.name ??
-                "";
-
-
-            const mobile =
-                row.Mobile ??
-                row.mobile ??
-                "";
+                const name =
+                    row.Name ??
+                    row.name ??
+                    "";
 
 
-            const vehicle =
-                row.Vehicle_Number ??
-                row.vehicle_no ??
-                row.Vehicle ??
-                "";
+                const mobile =
+                    row.Mobile ??
+                    row.mobile ??
+                    "";
 
 
-            const expiry =
-                row.Expiry_Date ??
-                row.expiry_date ??
-                row.Expiry ??
-                "";
+                const vehicle =
+                    row.Vehicle_Number ??
+                    row.vehicle_no ??
+                    row.Vehicle ??
+                    "";
 
 
-            if (
-                String(name).trim() &&
-                String(mobile).trim() &&
-                expiry
-            ) {
+                const expiry =
+                    row.Expiry_Date ??
+                    row.expiry_date ??
+                    row.Expiry ??
+                    "";
 
-                insertRows.push({
 
-                    name:
-                        String(name)
-                        .trim(),
+                if (
+                    String(
+                        name
+                    ).trim() &&
 
-                    mobile:
-                        String(mobile)
-                        .trim(),
+                    String(
+                        mobile
+                    ).trim() &&
 
-                    vehicle_no:
-                        String(vehicle)
-                        .trim() ||
-                        null,
+                    expiry
+                ) {
 
-                    expiry_date:
-                        normalizeExcelDate(
-                            expiry
-                        )
+                    insertRows.push({
 
-                });
+                        name:
+                            String(
+                                name
+                            ).trim(),
+
+                        mobile:
+                            String(
+                                mobile
+                            ).trim(),
+
+                        vehicle_no:
+                            String(
+                                vehicle
+                            ).trim() ||
+                            null,
+
+                        expiry_date:
+                            normalizeExcelDate(
+                                expiry
+                            )
+
+                    });
+                }
+
             }
+        );
 
-        });
 
-
-        if (!insertRows.length) {
+        if (
+            !insertRows.length
+        ) {
 
             alert(
                 "No valid records found. Please use Download Template."
@@ -2674,11 +2289,6 @@ async function importFile(event) {
 
         let total = 0;
 
-
-        /*
-          500 records ke batches.
-          Isse large Excel import stable rahega.
-        */
 
         for (
             let i = 0;
@@ -2693,11 +2303,15 @@ async function importFile(event) {
                 );
 
 
-            const { error } =
+            const {
+                error
+            } = await client
 
-                await client
-                    .from("customers")
-                    .insert(batch);
+                .from("customers")
+
+                .insert(
+                    batch
+                );
 
 
             if (error) {
@@ -2717,7 +2331,8 @@ async function importFile(event) {
         );
 
 
-        event.target.value = "";
+        event.target.value =
+            "";
 
 
         await loadAll();
@@ -2737,7 +2352,8 @@ async function importFile(event) {
         );
 
 
-        event.target.value = "";
+        event.target.value =
+            "";
     }
 }
 
@@ -2746,9 +2362,13 @@ async function importFile(event) {
    DATE FUNCTIONS
 ========================= */
 
-function parseLocalDate(value) {
+function parseLocalDate(
+    value
+) {
 
-    if (!value) return null;
+    if (!value) {
+        return null;
+    }
 
 
     const s =
@@ -2756,7 +2376,8 @@ function parseLocalDate(value) {
 
 
     if (
-        /^\d{4}-\d{2}-\d{2}$/.test(s)
+        /^\d{4}-\d{2}-\d{2}$/
+        .test(s)
     ) {
 
         const [
@@ -2765,8 +2386,8 @@ function parseLocalDate(value) {
             d
         ] =
             s
-            .split("-")
-            .map(Number);
+                .split("-")
+                .map(Number);
 
 
         return new Date(
@@ -2777,21 +2398,31 @@ function parseLocalDate(value) {
     }
 
 
-    return new Date(value);
-}
-
-
-function startOfDay(date) {
-
     return new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
+        value
     );
 }
 
 
-function toISODate(date) {
+function startOfDay(
+    date
+) {
+
+    return new Date(
+
+        date.getFullYear(),
+
+        date.getMonth(),
+
+        date.getDate()
+
+    );
+}
+
+
+function toISODate(
+    date
+) {
 
     const y =
         date.getFullYear();
@@ -2801,30 +2432,41 @@ function toISODate(date) {
         String(
             date.getMonth() + 1
         )
-        .padStart(2, "0");
+        .padStart(
+            2,
+            "0"
+        );
 
 
     const d =
         String(
             date.getDate()
         )
-        .padStart(2, "0");
+        .padStart(
+            2,
+            "0"
+        );
 
 
     return `${y}-${m}-${d}`;
 }
 
 
-function formatDate(value) {
+function formatDate(
+    value
+) {
 
     const d =
-        parseLocalDate(value);
+        parseLocalDate(
+            value
+        );
 
 
     if (
         !d ||
         isNaN(d)
     ) {
+
         return "-";
     }
 
@@ -2837,13 +2479,18 @@ function formatDate(value) {
 }
 
 
-function normalizeExcelDate(value) {
+function normalizeExcelDate(
+    value
+) {
 
-    if (!value) return null;
+    if (!value) {
+        return null;
+    }
 
 
     if (
-        typeof value === "number"
+        typeof value ===
+        "number"
     ) {
 
         const d =
@@ -2866,14 +2513,17 @@ function normalizeExcelDate(value) {
 
 
     if (
-        /^\d{4}-\d{2}-\d{2}$/.test(s)
+        /^\d{4}-\d{2}-\d{2}$/
+        .test(s)
     ) {
+
         return s;
     }
 
 
     if (
-        /^\d{2}-\d{2}-\d{4}$/.test(s)
+        /^\d{2}-\d{2}-\d{4}$/
+        .test(s)
     ) {
 
         const [
@@ -2889,7 +2539,8 @@ function normalizeExcelDate(value) {
 
 
     if (
-        /^\d{2}\/\d{2}\/\d{4}$/.test(s)
+        /^\d{2}\/\d{2}\/\d{4}$/
+        .test(s)
     ) {
 
         const [
@@ -2912,7 +2563,9 @@ function normalizeExcelDate(value) {
    REMINDER TYPE
 ========================= */
 
-function formatReminderType(type) {
+function formatReminderType(
+    type
+) {
 
     return ({
 
@@ -2936,10 +2589,12 @@ function formatReminderType(type) {
 
 
 /* =========================
-   MOBILE
+   MOBILE CLEAN
 ========================= */
 
-function cleanMobile(mobile) {
+function cleanMobile(
+    mobile
+) {
 
     let n =
         String(
@@ -2976,10 +2631,12 @@ function cleanMobile(mobile) {
 
 
 /* =========================
-   SECURITY / HTML ESCAPE
+   HTML ESCAPE
 ========================= */
 
-function escapeHtml(value) {
+function escapeHtml(
+    value
+) {
 
     return String(
         value ?? ""
@@ -3012,7 +2669,13 @@ function escapeHtml(value) {
 }
 
 
-function escapeJs(value) {
+/* =========================
+   JAVASCRIPT ESCAPE
+========================= */
+
+function escapeJs(
+    value
+) {
 
     return String(
         value ?? ""
@@ -3056,7 +2719,9 @@ function showMessage(
         );
 
 
-    if (!box) return;
+    if (!box) {
+        return;
+    }
 
 
     box.innerText =
@@ -3066,7 +2731,8 @@ function showMessage(
     box.className =
         "message " +
         (
-            type === "success"
+            type ===
+            "success"
                 ? "success"
                 : "error"
         );
@@ -3089,11 +2755,14 @@ function showMessage(
 
 
 /* =========================
-   AUTH LISTENER
+   AUTH STATE
 ========================= */
 
 client.auth.onAuthStateChange(
-    (event, session) => {
+    (
+        event,
+        session
+    ) => {
 
         if (
             event ===
